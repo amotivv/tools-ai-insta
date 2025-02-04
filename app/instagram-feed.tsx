@@ -256,7 +256,7 @@ export function InstagramFeed() {
   const handleShareAll = useCallback(async () => {
     if (posts.length === 0) {
       toast.error("No images to share")
-      throw new Error("No images to share") // Return a rejected promise instead of undefined
+      throw new Error("No images to share")
     }
   
     const feedToShare = {
@@ -273,23 +273,53 @@ export function InstagramFeed() {
       })),
     }
   
-    const response = await fetch("/api/share", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ feed: feedToShare }),
-    })
+    try {
+      const response = await fetch("/api/share", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ feed: feedToShare }),
+      })
   
-    if (!response.ok) {
-      throw new Error("Failed to generate share URL")
+      if (!response.ok) {
+        throw new Error("Failed to generate share URL")
+      }
+  
+      const { shareUrl } = await response.json()
+      const fullShareUrl = `${window.location.origin}${shareUrl}`
+  
+      // Try Web Share API first (better for mobile)
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `${aiProfile.name}'s AI Instagram Feed`,
+            text: `Check out this AI-generated Instagram feed!`,
+            url: fullShareUrl
+          })
+          toast.success("Shared successfully!")
+          return fullShareUrl
+        } catch (shareError) {
+          console.log("Share failed, falling back to clipboard", shareError)
+        }
+      }
+  
+      // Fallback to clipboard
+      try {
+        await navigator.clipboard.writeText(fullShareUrl)
+        toast.success("Share link copied to clipboard!")
+      } catch (clipboardError) {
+        // Final fallback - show the URL in a toast
+        toast.info("Share URL: " + fullShareUrl)
+        console.log("Clipboard failed", clipboardError)
+      }
+  
+      return fullShareUrl
+    } catch (error) {
+      console.error("Error sharing feed:", error)
+      toast.error("Failed to generate share link. Please try again.")
+      throw error
     }
-  
-    const { shareUrl } = await response.json()
-    const fullShareUrl = `${window.location.origin}${shareUrl}`
-    await navigator.clipboard.writeText(fullShareUrl)
-    toast.success("Share link copied to clipboard!")
-    return fullShareUrl
   }, [posts, aiProfile])
 
   const handleDownloadAll = useCallback(async () => {
