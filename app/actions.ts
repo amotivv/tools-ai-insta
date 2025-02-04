@@ -16,8 +16,13 @@ interface PredictionResponse {
 export async function generatePhotoSubjects(aiType: string): Promise<string[]> {
   const { text } = await generateText({
     model: openai("gpt-4o-mini"),
-    system: "You are a creative AI assistant specializing in photography and social media content.",
-    prompt: `Given an AI type of "${aiType}", generate a list of 10 diverse and interesting photo subjects that this AI might post about on Instagram. Each subject should be concise (1-3 words). Separate each subject with a comma.`,
+    system: "You are a creative AI assistant specializing in content strategy and social media trends. You understand different content creator niches and their unique visual storytelling needs.",
+    prompt: `Generate 10 trending and engaging photo subjects for an AI that posts as a "${aiType}" content creator on Instagram.
+    - Each subject should be 1-3 words
+    - Focus on subjects that would resonate with ${aiType}'s target audience
+    - Ensure variety while maintaining niche relevance
+    - Consider current social media trends
+    Return only the subjects, separated by commas.`,
   })
 
   return text.split(",").map((subject) => subject.trim())
@@ -26,8 +31,13 @@ export async function generatePhotoSubjects(aiType: string): Promise<string[]> {
 export async function generatePhotoStyles(aiType: string, photoSubject: string): Promise<string[]> {
   const { text } = await generateText({
     model: openai("gpt-4o-mini"),
-    system: "You are a creative AI assistant specializing in photography styles and visual aesthetics.",
-    prompt: `Given an AI type of "${aiType}" focusing on the photo subject "${photoSubject}", generate a list of 8 diverse and interesting photo styles that would suit this combination. Each style should be concise (1-3 words). Separate each style with a comma.`,
+    system: "You are a creative AI assistant specializing in photography and visual aesthetics. You understand both technical photography terms and popular Instagram aesthetic trends.",
+    prompt: `Generate 8 distinct photography styles for a "${aiType}" Instagram creator showcasing "${photoSubject}".
+    - Each style should be 1-3 words
+    - Mix technical terms (e.g., "macro shot") with aesthetic terms (e.g., "dark moody")
+    - Consider the subject matter and creator type
+    - Focus on visually distinctive styles
+    Return only the styles, separated by commas.`,
   })
 
   return text.split(",").map((style) => style.trim())
@@ -39,14 +49,23 @@ export async function generatePrompts(
 ): Promise<string[]> {
   const { text } = await generateText({
     model: openai("gpt-4o-mini"),
-    system: "You are a creative prompt engineer for an AI that generates Instagram-style images.",
-    prompt: `Generate ${count} unique, descriptive prompts for image generation based on the following AI profile:
-    - AI Type: ${aiProfile.type}
-    - Photo Subject: ${aiProfile.photoSubject}
-    - Photo Style: ${aiProfile.photoStyle}
-    - AI Name: ${aiProfile.name}
+    system: "You are an expert prompt engineer specializing in image generation for social media. You understand how to craft prompts that produce consistent, high-quality, Instagram-worthy images.",
+    prompt: `Create ${count} image generation prompts for an Instagram AI creator:
+    Profile:
+    - Type: ${aiProfile.type}
+    - Subject: ${aiProfile.photoSubject}
+    - Style: ${aiProfile.photoStyle}
+    - Name: ${aiProfile.name}
 
-    Each prompt should be tailored to this AI's characteristics and preferences. Keep each prompt under 100 characters. Focus on visual elements, style, and mood. Return exactly the requested number of prompts, one per line.`,
+    Requirements:
+    - Each prompt should be under 100 characters
+    - Focus on visual aesthetics and composition
+    - Maintain consistency with the creator's style
+    - Include lighting, angle, and mood cues
+    - Avoid text or graphics in the image
+    - Ensure Instagram-friendly composition
+    
+    Return one prompt per line.`,
   })
 
   return text.split("\n").filter(Boolean)
@@ -69,7 +88,7 @@ export async function generateImage(prompt: string): Promise<string> {
           prompt,
           num_outputs: 1,
           guidance_scale: 5.5,
-          num_inference_steps: 1,
+          num_inference_steps: 2,
           output_format: "webp",
           output_quality: 80,
           disable_safety_checker: false,
