@@ -9,6 +9,7 @@ interface SharedFeed {
     name: string
     photoSubject: string
     photoStyle: string
+    avatarUrl: string
   }
   posts: {
     id: string
@@ -41,7 +42,7 @@ export default async function SharedFeedPage({ params }: { params: { id: string 
       <main className="max-w-lg mx-auto bg-white min-h-screen p-4">
         <h1 className="text-2xl font-bold mb-4">Shared AI Instagram Feed</h1>
         <div className="text-sm text-gray-500 mb-4">Created on {createdDate}</div>
-        
+
         {/* AI Profile Info */}
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
           <h2 className="font-semibold">AI Profile</h2>
@@ -56,7 +57,10 @@ export default async function SharedFeedPage({ params }: { params: { id: string 
               {/* Profile Header */}
               <div className="p-4 flex items-center space-x-2">
                 <Avatar>
-                  <AvatarImage src="/placeholder.svg" alt={feed.aiProfile.name} />
+                  <AvatarImage
+                    src={feed.aiProfile.avatarUrl}
+                    alt={feed.aiProfile.name}
+                  />
                   <AvatarFallback>{feed.aiProfile.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="font-semibold">{feed.aiProfile.name}</div>

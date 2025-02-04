@@ -278,6 +278,18 @@ export function InstagramFeed() {
     return () => clearInterval(interval)
   }, [isLoadingPrompts])
 
+  const getAvatarUrl = (name: string) => {
+    // Using Dicebear's "initials" style - simple, clean, and professional
+    return `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(name)}&backgroundColor=4f46e5`
+    
+    // Alternative styles:
+    // Micah style (more playful):
+    // return `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(name)}`
+    
+    // Bottts style (robot-like):
+    // return `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`
+  }
+
   const handleShareAll = useCallback(async () => {
     if (posts.length === 0) {
       toast.error("No images to share")
@@ -289,6 +301,7 @@ export function InstagramFeed() {
         name: aiProfile.name,
         photoSubject: aiProfile.photoSubject,
         photoStyle: aiProfile.photoStyle,
+        avatarUrl: getAvatarUrl(aiProfile.name)
       },
       posts: posts.map((post) => ({
         id: post.id,
@@ -567,10 +580,13 @@ export function InstagramFeed() {
             {posts.map((post, index) => (
               <Card key={post.id} className="overflow-hidden" ref={index === posts.length - 1 ? lastPostRef : null}>
                 <div className="p-4 flex items-center space-x-2">
-                  <Avatar>
-                    <AvatarImage src="/placeholder.svg" />
-                    <AvatarFallback>{aiProfile?.name?.charAt(0) || "AI"}</AvatarFallback>
-                  </Avatar>
+                <Avatar>
+  <AvatarImage 
+    src={aiProfile.name ? getAvatarUrl(aiProfile.name) : "/placeholder.svg"} 
+    alt={aiProfile.name || "AI"}
+  />
+  <AvatarFallback>{aiProfile?.name?.charAt(0) || "AI"}</AvatarFallback>
+</Avatar>
                   <div className="font-semibold">{aiProfile?.name || "AI Creator"}</div>
                 </div>
 
