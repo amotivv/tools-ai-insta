@@ -49,6 +49,18 @@ export function InstagramFeed() {
   const lastPostRef = useRef<HTMLDivElement | null>(null)
   const [completedSections, setCompletedSections] = useState<Set<string>>(new Set())
 
+  const loadingMessages = [
+    "Creating your AI Instagram feed...",
+    "This is gonna be good...",
+    "Almost there...",
+    "Generating amazing content...",
+    "Making it Instagram-worthy...",
+    "Adding those finishing touches...",
+    "Just a few more seconds...",
+    "Your feed is coming to life..."
+  ]
+  const [currentLoadingMessage, setCurrentLoadingMessage] = useState(loadingMessages[0])
+
   const visibleAITypes = useMemo(() => {
     const start = currentAITypeIndex
     const end = start + 5
@@ -160,10 +172,10 @@ export function InstagramFeed() {
       prevPosts.map((post) =>
         post.id === postId
           ? {
-              ...post,
-              isLiked: !post.isLiked,
-              likes: post.isLiked ? post.likes - 1 : post.likes + 1,
-            }
+            ...post,
+            isLiked: !post.isLiked,
+            likes: post.isLiked ? post.likes - 1 : post.likes + 1,
+          }
           : post,
       ),
     )
@@ -253,12 +265,25 @@ export function InstagramFeed() {
     }
   }, [hasMore, isGenerating, generateNewPost, posts.length])
 
+  useEffect(() => {
+    if (!isLoadingPrompts) return
+
+    const interval = setInterval(() => {
+      setCurrentLoadingMessage(prev => {
+        const currentIndex = loadingMessages.indexOf(prev)
+        return loadingMessages[(currentIndex + 1) % loadingMessages.length]
+      })
+    }, 2000) // Change message every 2 seconds
+
+    return () => clearInterval(interval)
+  }, [isLoadingPrompts])
+
   const handleShareAll = useCallback(async () => {
     if (posts.length === 0) {
       toast.error("No images to share")
       throw new Error("No images to share")
     }
-  
+
     const feedToShare = {
       aiProfile: {
         name: aiProfile.name,
@@ -272,7 +297,7 @@ export function InstagramFeed() {
         comments: post.comments,
       })),
     }
-  
+
     try {
       const response = await fetch("/api/share", {
         method: "POST",
@@ -281,14 +306,14 @@ export function InstagramFeed() {
         },
         body: JSON.stringify({ feed: feedToShare }),
       })
-  
+
       if (!response.ok) {
         throw new Error("Failed to generate share URL")
       }
-  
+
       const { shareUrl } = await response.json()
       const fullShareUrl = `${window.location.origin}${shareUrl}`
-  
+
       // Try Web Share API first (better for mobile)
       if (navigator.share) {
         try {
@@ -303,7 +328,7 @@ export function InstagramFeed() {
           console.log("Share failed, falling back to clipboard", shareError)
         }
       }
-  
+
       // Fallback to clipboard
       try {
         await navigator.clipboard.writeText(fullShareUrl)
@@ -313,7 +338,7 @@ export function InstagramFeed() {
         toast.info("Share URL: " + fullShareUrl)
         console.log("Clipboard failed", clipboardError)
       }
-  
+
       return fullShareUrl
     } catch (error) {
       console.error("Error sharing feed:", error)
@@ -395,10 +420,10 @@ export function InstagramFeed() {
                           {type}
                         </Button>
                       ))}
-<Button variant="outline" size="sm" onClick={cycleAITypes} className="ml-2">
-  <span className="mr-2">More</span>
-  <ChevronRight className="w-4 h-4" />
-</Button>
+                      <Button variant="outline" size="sm" onClick={cycleAITypes} className="ml-2">
+                        <span className="mr-2">More</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 </motion.div>
@@ -532,8 +557,10 @@ export function InstagramFeed() {
           <>
             {isLoadingPrompts && (
               <div className="flex justify-center items-center py-4">
-                <Loader2 className="w-6 h-6 animate-spin" />
-                <span className="ml-2">Creating your AI Instagram feed...</span>
+                <div className="flex flex-col items-center w-[400px] space-y-3">
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  <span className="text-center whitespace-nowrap">{currentLoadingMessage}</span>
+                </div>
               </div>
             )}
 
