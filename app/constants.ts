@@ -1,0 +1,23 @@
+export const AI_TYPES = [
+  "FashionBot",
+  "TechGuru",
+  "FoodieAI",
+  "TravelBot",
+  "FitnessAI",
+  "ArtisticMind",
+  "MusicBot",
+  "NatureAI",
+  "HealthCoach",
+  "GamerBot",
+  "PetLover",
+  "ArchitectAI",
+  "BookWorm",
+  "SportsAnalyst",
+  "ChefBot",
+  "GardenGuru",
+  "CosplayAI",
+  "DIYMaster",
+  "VintageBot",
+  "StarGazer",
+]
+
