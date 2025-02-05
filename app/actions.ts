@@ -2,9 +2,9 @@
 
 import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
+import { put } from '@vercel/blob'
 
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 
 interface PredictionResponse {
   id: string
@@ -13,44 +13,79 @@ interface PredictionResponse {
   error: string | null
 }
 
-export async function generatePhotoSubjects(aiType: string): Promise<string[]> {
-  const { text } = await generateText({
-    model: openai("gpt-4o-mini"),
-    system: "You are a creative AI assistant specializing in content strategy and social media trends. You understand different content creator niches and their unique visual storytelling needs.",
-    prompt: `Generate 10 trending and engaging photo subjects for an AI that posts as a "${aiType}" content creator on Instagram.
+interface ErrorResponse {
+  success: false
+  error: string
+}
+
+interface SuccessResponse<T> {
+  success: true
+  data: T
+}
+
+type ActionResponse<T> = SuccessResponse<T> | ErrorResponse
+
+export async function generatePhotoSubjects(aiType: string): Promise<ActionResponse<string[]>> {
+  try {
+    const { text } = await generateText({
+      model: openai("gpt-4o-mini"),
+      system: "You are a creative AI assistant specializing in content strategy and social media trends. You understand different content creator niches and their unique visual storytelling needs.",
+      prompt: `Generate 10 trending and engaging photo subjects for an AI that posts as a "${aiType}" content creator on Instagram.
     - Each subject should be 1-3 words
     - Focus on subjects that would resonate with ${aiType}'s target audience
     - Ensure variety while maintaining niche relevance
     - Consider current social media trends
     Return only the subjects, separated by commas.`,
-  })
+    })
 
-  return text.split(",").map((subject) => subject.trim())
+    return {
+      success: true,
+      data: text.split(",").map((subject) => subject.trim())
+    }
+  } catch (error) {
+    console.error("Error generating photo subjects:", error)
+    return {
+      success: false,
+      error: "Failed to generate photo subjects. Please try again."
+    }
+  }
 }
 
-export async function generatePhotoStyles(aiType: string, photoSubject: string): Promise<string[]> {
-  const { text } = await generateText({
-    model: openai("gpt-4o-mini"),
-    system: "You are a creative AI assistant specializing in photography and visual aesthetics. You understand both technical photography terms and popular Instagram aesthetic trends.",
-    prompt: `Generate 8 distinct photography styles for a "${aiType}" Instagram creator showcasing "${photoSubject}".
+export async function generatePhotoStyles(aiType: string, photoSubject: string): Promise<ActionResponse<string[]>> {
+  try {
+    const { text } = await generateText({
+      model: openai("gpt-4o-mini"),
+      system: "You are a creative AI assistant specializing in photography and visual aesthetics. You understand both technical photography terms and popular Instagram aesthetic trends.",
+      prompt: `Generate 8 distinct photography styles for a "${aiType}" Instagram creator showcasing "${photoSubject}".
     - Each style should be 1-3 words
     - Mix technical terms (e.g., "macro shot") with aesthetic terms (e.g., "dark moody")
     - Consider the subject matter and creator type
     - Focus on visually distinctive styles
     Return only the styles, separated by commas.`,
-  })
+    })
 
-  return text.split(",").map((style) => style.trim())
+    return {
+      success: true,
+      data: text.split(",").map((style) => style.trim())
+    }
+  } catch (error) {
+    console.error("Error generating photo styles:", error)
+    return {
+      success: false,
+      error: "Failed to generate photo styles. Please try again."
+    }
+  }
 }
 
 export async function generatePrompts(
   aiProfile: { type: string; photoSubject: string; photoStyle: string; name: string },
   count = 20,
-): Promise<string[]> {
-  const { text } = await generateText({
-    model: openai("gpt-4o-mini"),
-    system: "You are an expert prompt engineer specializing in image generation for social media. You understand how to craft prompts that produce consistent, high-quality, Instagram-worthy images.",
-    prompt: `Create ${count} image generation prompts for an Instagram AI creator:
+): Promise<ActionResponse<string[]>> {
+  try {
+    const { text } = await generateText({
+      model: openai("gpt-4o-mini"),
+      system: "You are an expert prompt engineer specializing in image generation for social media. You understand how to craft prompts that produce consistent, high-quality, Instagram-worthy images.",
+      prompt: `Create ${count} image generation prompts for an Instagram AI creator:
     Profile:
     - Type: ${aiProfile.type}
     - Subject: ${aiProfile.photoSubject}
@@ -66,14 +101,27 @@ export async function generatePrompts(
     - Ensure Instagram-friendly composition
     
     Return one prompt per line.`,
-  })
+    })
 
-  return text.split("\n").filter(Boolean)
+    return {
+      success: true,
+      data: text.split("\n").filter(Boolean)
+    }
+  } catch (error) {
+    console.error("Error generating prompts:", error)
+    return {
+      success: false,
+      error: "Failed to generate prompts. Please try again."
+    }
+  }
 }
 
-export async function generateImage(prompt: string): Promise<string> {
+export async function generateImage(prompt: string): Promise<ActionResponse<string>> {
   if (!REPLICATE_API_TOKEN) {
-    throw new Error("REPLICATE_API_TOKEN is not set")
+    return {
+      success: false,
+      error: "API configuration error. Please try again later."
+    }
   }
 
   try {
@@ -123,20 +171,42 @@ export async function generateImage(prompt: string): Promise<string> {
       const status: PredictionResponse = await pollResponse.json()
 
       if (status.status === "succeeded" && status.output && status.output[0]) {
-        return status.output[0]
+        const replicateUrl = status.output[0]
+        const response = await fetch(replicateUrl)
+        const imageBlob = await response.blob()
+
+        const { url } = await put(
+          `ai-images/${Date.now()}.png`,
+          imageBlob,
+          {
+            access: 'public',
+            addRandomSuffix: true
+          }
+        )
+
+        return { success: true, data: url }
       }
 
       if (status.status === "failed") {
-        throw new Error(status.error || "Image generation failed")
+        return {
+          success: false,
+          error: status.error || "Image generation failed"
+        }
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise(resolve => setTimeout(resolve, 1000))
     }
 
-    throw new Error("Image generation timed out")
+    return {
+      success: false,
+      error: "Image generation timed out"
+    }
   } catch (error) {
-    console.error("Replicate API error:", error)
-    throw error
+    console.error("Error generating or storing image:", error)
+    return {
+      success: false,
+      error: "Failed to generate image. Please try again."
+    }
   }
 }
 

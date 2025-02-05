@@ -75,10 +75,13 @@ export function InstagramFeed() {
   const handleAITypeSelect = useCallback(async (type: string) => {
     setAIProfile((prev) => ({ ...prev, type, photoSubject: "", photoStyle: "" }))
     setIsLoadingSubjects(true)
-    setExpandedSection("photoSubject")
     try {
-      const subjects = await generatePhotoSubjects(type)
-      setPhotoSubjects(subjects)
+      const result = await generatePhotoSubjects(type)
+      if (result.success) {
+        setPhotoSubjects(result.data)
+      } else {
+        toast.error(result.error)
+      }
     } catch (error) {
       console.error("Failed to load photo subjects:", error)
       toast.error("Failed to load photo subjects. Please try again.")
@@ -87,31 +90,35 @@ export function InstagramFeed() {
     }
   }, [])
 
-  const handlePhotoSubjectSelect = useCallback(
-    async (subject: string) => {
-      setAIProfile((prev) => ({ ...prev, photoSubject: subject, photoStyle: "" }))
-      setIsLoadingStyles(true)
-      setExpandedSection("photoStyle")
-      try {
-        const styles = await generatePhotoStyles(aiProfile.type, subject)
-        setPhotoStyles(styles)
-      } catch (error) {
-        console.error("Failed to load photo styles:", error)
-        toast.error("Failed to load photo styles. Please try again.")
-      } finally {
-        setIsLoadingStyles(false)
+  const handlePhotoSubjectSelect = useCallback(async (subject: string) => {
+    setAIProfile((prev) => ({ ...prev, photoSubject: subject, photoStyle: "" }))
+    setIsLoadingStyles(true)
+    try {
+      const result = await generatePhotoStyles(aiProfile.type, subject)
+      if (result.success) {
+        setPhotoStyles(result.data)
+      } else {
+        toast.error(result.error)
       }
-    },
-    [aiProfile.type],
-  )
+    } catch (error) {
+      console.error("Failed to load photo styles:", error)
+      toast.error("Failed to load photo styles. Please try again.")
+    } finally {
+      setIsLoadingStyles(false)
+    }
+  }, [aiProfile.type])
 
   const generateNewPrompts = useCallback(async (profile: AIProfile) => {
     try {
       setIsLoadingPrompts(true)
-      const newPrompts = await generatePrompts(profile, MAX_IMAGES)
-      setPrompts(newPrompts)
-      setPosts([])
-      setHasMore(true)
+      const result = await generatePrompts(profile, MAX_IMAGES)
+      if (result.success) {
+        setPrompts(result.data)
+        setPosts([])
+        setHasMore(true)
+      } else {
+        toast.error(result.error)
+      }
     } catch (error) {
       console.error("Failed to generate prompts:", error)
       toast.error("Failed to generate prompts")
@@ -122,13 +129,13 @@ export function InstagramFeed() {
 
   const generateNewPost = useCallback(async () => {
     if (isGenerating || !hasMore || prompts.length === 0 || posts.length >= MAX_IMAGES) return
-
+  
     try {
       setIsGenerating(true)
       const newPostId = Date.now().toString()
       const promptIndex = posts.length % prompts.length
       const prompt = prompts[promptIndex]
-
+  
       setPosts((prev) => [
         ...prev,
         {
@@ -140,18 +147,25 @@ export function InstagramFeed() {
           comments: [],
         },
       ])
-
-      const imageUrl = await generateImage(prompt)
-
-      setPosts((prev) => prev.map((post) => (post.id === newPostId ? { ...post, image: imageUrl } : post)))
-
+  
+      const result = await generateImage(prompt)
+      if (result.success) {
+        setPosts((prev) => 
+          prev.map((post) => 
+            post.id === newPostId ? { ...post, image: result.data } : post
+          )
+        )
+      } else {
+        toast.error(result.error)
+        setPosts((prev) => prev.filter((post) => post.id !== newPostId))
+      }
+  
       if (posts.length + 1 >= MAX_IMAGES) {
         setHasMore(false)
       }
     } catch (error) {
       console.error("Failed to generate image:", error)
       toast.error("Failed to generate image. Please try again.")
-      setPosts((prev) => prev.filter((post) => post.image !== null))
     } finally {
       setIsGenerating(false)
     }
