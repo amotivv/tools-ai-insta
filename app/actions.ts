@@ -3,6 +3,8 @@
 import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { put } from '@vercel/blob'
+import './config'
+
 
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN
 
