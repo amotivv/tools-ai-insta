@@ -66,3 +66,17 @@
   }
 }
 
+.driver-popover-allow-interaction {
+  pointer-events: none;
+}
+.driver-popover-allow-interaction .driver-popover-title,
+.driver-popover-allow-interaction .driver-popover-description,
+.driver-popover-allow-interaction .driver-popover-progress-text,
+.driver-popover-allow-interaction .driver-popover-prev-btn,
+.driver-popover-allow-interaction .driver-popover-next-btn {
+  pointer-events: auto;
+}
+
+.driver-popover {
+  font-family: "JetBrains Mono", monospace !important;
+}

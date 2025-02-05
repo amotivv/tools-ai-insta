@@ -1,6 +1,6 @@
 "use client"
 
-import { Heart, Share2, Download } from "lucide-react"
+import { Heart, Share2, Download, HelpCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -8,9 +8,10 @@ import { motion, AnimatePresence } from "framer-motion"
 interface HeaderProps {
   onDownloadAll: () => void
   onShare: () => Promise<string>
+  onShowTour?: () => void
 }
 
-export function Header({ onDownloadAll, onShare }: HeaderProps) {
+export function Header({ onDownloadAll, onShare, onShowTour }: HeaderProps) {
   const [isLiked, setIsLiked] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
 
@@ -45,6 +46,11 @@ export function Header({ onDownloadAll, onShare }: HeaderProps) {
             </Button>
           </motion.div>
         </AnimatePresence>
+        {onShowTour && (  // Only show if prop is provided
+          <Button variant="ghost" size="icon" onClick={onShowTour}>
+            <HelpCircle className="w-6 h-6 text-dark-gray" />
+          </Button>
+        )}
         <Button variant="ghost" size="icon" onClick={handleShare} disabled={isSharing}>
           {isSharing ? (
             <motion.div

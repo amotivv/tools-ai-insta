@@ -6,12 +6,21 @@ import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { Heart, Send, Bookmark, Loader2, ChevronRight } from "lucide-react"
 import { toast } from "sonner"
 import { motion, AnimatePresence } from "framer-motion"
 import { Header } from "./header"
 import JSZip from "jszip"
 import { AI_TYPES } from "./constants"
+import { driver } from "driver.js"
+import "driver.js/dist/driver.css"
 
 const MAX_IMAGES = 20
 
@@ -48,6 +57,7 @@ export function InstagramFeed() {
   const observerRef = useRef<IntersectionObserver | null>(null)
   const lastPostRef = useRef<HTMLDivElement | null>(null)
   const [completedSections, setCompletedSections] = useState<Set<string>>(new Set())
+  const [showHelpDialog, setShowHelpDialog] = useState(false)
 
   const loadingMessages = [
     "Creating your AI Instagram feed...",
@@ -59,6 +69,43 @@ export function InstagramFeed() {
     "Just a few more seconds...",
     "Your feed is coming to life..."
   ]
+
+  const driverObj = useRef(
+    driver({
+      showProgress: true,
+      allowClose: true,
+      showButtons: ["close"],
+      popoverClass: 'driver-popover-allow-interaction',
+      steps: [
+        {
+          element: '[data-tour="ai-type"]',
+          popover: {
+            title: 'Choose Your AI Type',
+            description: 'Select what kind of content creator your AI will be - from food photographer to travel blogger.',
+            side: "bottom",
+            align: 'start'
+          }
+        },
+        {
+          element: '[data-tour="photo-subject"]',
+          popover: {
+            title: 'AI-Generated Subjects',
+            description: 'GPT-4 analyzes your AI type to suggest trending and relevant photo subjects.',
+            side: "right",
+          }
+        },
+        {
+          element: '[data-tour="photo-style"]',
+          popover: {
+            title: 'Visual Style',
+            description: 'Pick a style for your photos. AI matches complementary styles to your chosen subject.',
+            side: "left",
+          }
+        }
+      ]
+    })
+  )
+
   const [currentLoadingMessage, setCurrentLoadingMessage] = useState(loadingMessages[0])
 
   const visibleAITypes = useMemo(() => {
@@ -129,13 +176,13 @@ export function InstagramFeed() {
 
   const generateNewPost = useCallback(async () => {
     if (isGenerating || !hasMore || prompts.length === 0 || posts.length >= MAX_IMAGES) return
-  
+
     try {
       setIsGenerating(true)
       const newPostId = Date.now().toString()
       const promptIndex = posts.length % prompts.length
       const prompt = prompts[promptIndex]
-  
+
       setPosts((prev) => [
         ...prev,
         {
@@ -147,11 +194,11 @@ export function InstagramFeed() {
           comments: [],
         },
       ])
-  
+
       const result = await generateImage(prompt)
       if (result.success) {
-        setPosts((prev) => 
-          prev.map((post) => 
+        setPosts((prev) =>
+          prev.map((post) =>
             post.id === newPostId ? { ...post, image: result.data } : post
           )
         )
@@ -159,7 +206,7 @@ export function InstagramFeed() {
         toast.error(result.error)
         setPosts((prev) => prev.filter((post) => post.id !== newPostId))
       }
-  
+
       if (posts.length + 1 >= MAX_IMAGES) {
         setHasMore(false)
       }
@@ -252,6 +299,52 @@ export function InstagramFeed() {
   }, [])
 
   useEffect(() => {
+    if (!isCreatingAI) return
+
+    if (completedSections.has('aiType')) {
+      // Wait for subjects to be loaded before advancing
+      if (photoSubjects.length > 0 && !isLoadingSubjects) {
+        driverObj.current.moveNext()
+      }
+    }
+  }, [aiProfile.type, photoSubjects, isLoadingSubjects])
+
+  useEffect(() => {
+    if (!isCreatingAI) return
+
+    if (completedSections.has('photoSubject')) {
+      // Wait for styles to be loaded before advancing
+      if (photoStyles.length > 0 && !isLoadingStyles) {
+        driverObj.current.moveNext()
+      }
+    }
+  }, [aiProfile.photoSubject, photoStyles, isLoadingStyles])
+
+  useEffect(() => {
+    if (!isCreatingAI) return
+
+    if (completedSections.has('photoStyle')) {
+      driverObj.current.moveNext()
+    }
+  }, [aiProfile.photoStyle])
+
+  useEffect(() => {
+    if (!isCreatingAI) return
+
+    if (completedSections.has('aiName')) {
+      driverObj.current.moveNext()
+    }
+  }, [aiProfile.name])
+
+  useEffect(() => {
+    const tourShown = localStorage.getItem('aiStagramTourShown')
+    if (!tourShown && isCreatingAI) {
+      driverObj.current.drive()
+      localStorage.setItem('aiStagramTourShown', 'true')
+    }
+  }, [isCreatingAI])
+
+  useEffect(() => {
     if (!isCreatingAI && prompts.length > 0 && posts.length === 0) {
       generateNewPost()
     }
@@ -295,11 +388,11 @@ export function InstagramFeed() {
   const getAvatarUrl = (name: string) => {
     // Using Dicebear's "initials" style - simple, clean, and professional
     return `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(name)}&backgroundColor=4f46e5`
-    
+
     // Alternative styles:
     // Micah style (more playful):
     // return `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(name)}`
-    
+
     // Bottts style (robot-like):
     // return `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`
   }
@@ -416,21 +509,49 @@ export function InstagramFeed() {
     setExpandedSection((prev) => (prev === section ? prev : section))
   }, [])
 
+  const handleShowTour = useCallback(() => {
+    if (!isCreatingAI) {
+      setShowHelpDialog(true)
+      return
+    }
+
+    // Determine which step to start from
+    let startIndex = 0;
+
+    if (completedSections.has('aiType')) {
+      if (photoSubjects.length > 0 && !isLoadingSubjects) {
+        startIndex = 1; // Photo Subject step
+      }
+      if (completedSections.has('photoSubject') && photoStyles.length > 0 && !isLoadingStyles) {
+        startIndex = 2; // Photo Style step
+      }
+      if (completedSections.has('photoStyle')) {
+        startIndex = 3; // AI Name step
+      }
+      if (completedSections.has('aiName')) {
+        startIndex = 4; // Create button step
+      }
+    }
+
+    driverObj.current.drive(startIndex);
+  }, [completedSections, photoSubjects, isLoadingSubjects, photoStyles, isLoadingStyles])
+
   return (
     <>
-      <Header onDownloadAll={handleDownloadAll} onShare={handleShareAll} />
+      <Header onDownloadAll={handleDownloadAll} onShare={handleShareAll} onShowTour={handleShowTour} />
       <div className="space-y-6 p-4">
         {isCreatingAI ? (
           <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-center">Create Your AI Instagram Creator</h2>
+            <h2 className="text-2xl font-bold text-center">Create Your AI Instagram Feed</h2>
             <AnimatePresence>
               {!completedSections.has("aiType") && (
                 <motion.div
+                  data-tour="ai-type"
                   initial={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-2 pb-2">
                     <label className="block text-sm font-medium text-gray-700">AI Type</label>
                     <div className="flex flex-wrap gap-2 items-center">
                       {visibleAITypes.map((type) => (
@@ -459,77 +580,82 @@ export function InstagramFeed() {
 
             <AnimatePresence>
               {completedSections.has("aiType") && !completedSections.has("photoSubject") && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Photo Subject</label>
-                    <div className="flex flex-wrap gap-2">
-                      {isLoadingSubjects ? (
-                        <div className="flex items-center">
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                          Loading subjects...
-                        </div>
-                      ) : (
-                        photoSubjects.map((subject) => (
-                          <Button
-                            key={subject}
-                            variant={aiProfile.photoSubject === subject ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => {
-                              handlePhotoSubjectSelect(subject)
-                              setCompletedSections(new Set(["aiType", "photoSubject"]))
-                            }}
-                            className="capitalize"
-                          >
-                            {subject}
-                          </Button>
-                        ))
-                      )}
+                <div data-tour="photo-subject" className="w-full">
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="space-y-2 pb-2">
+                      <label className="block text-sm font-medium text-gray-700">Photo Subject</label>
+                      <div className="flex flex-wrap gap-2">
+                        {isLoadingSubjects ? (
+                          <div className="flex items-center">
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            Loading subjects...
+                          </div>
+                        ) : (
+                          photoSubjects.map((subject) => (
+                            <Button
+                              key={subject}
+                              variant={aiProfile.photoSubject === subject ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => {
+                                handlePhotoSubjectSelect(subject)
+                                setCompletedSections(new Set(["aiType", "photoSubject"]))
+                              }}
+                              className="capitalize"
+                            >
+                              {subject}
+                            </Button>
+                          ))
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
+                  </motion.div>
+                </div>
               )}
             </AnimatePresence>
 
             <AnimatePresence>
               {completedSections.has("photoSubject") && !completedSections.has("photoStyle") && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Photo Style</label>
-                    <div className="flex flex-wrap gap-2">
-                      {isLoadingStyles ? (
-                        <div className="flex items-center">
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                          Loading styles...
-                        </div>
-                      ) : (
-                        photoStyles.map((style) => (
-                          <Button
-                            key={style}
-                            variant={aiProfile.photoStyle === style ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => {
-                              setAIProfile((prev) => ({ ...prev, photoStyle: style }))
-                              setCompletedSections(new Set(["aiType", "photoSubject", "photoStyle"]))
-                            }}
-                            className="capitalize"
-                          >
-                            {style}
-                          </Button>
-                        ))
-                      )}
+                <div data-tour="photo-style" className="space-y-2">
+                  <motion.div
+                    data-tour="photo-style"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="space-y-2 pb-2">
+                      <label className="block text-sm font-medium text-gray-700">Photo Style</label>
+                      <div className="flex flex-wrap gap-2">
+                        {isLoadingStyles ? (
+                          <div className="flex items-center">
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            Loading styles...
+                          </div>
+                        ) : (
+                          photoStyles.map((style) => (
+                            <Button
+                              key={style}
+                              variant={aiProfile.photoStyle === style ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => {
+                                setAIProfile((prev) => ({ ...prev, photoStyle: style }))
+                                setCompletedSections(new Set(["aiType", "photoSubject", "photoStyle"]))
+                              }}
+                              className="capitalize"
+                            >
+                              {style}
+                            </Button>
+                          ))
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
+                  </motion.div>
+                </div>
               )}
             </AnimatePresence>
 
@@ -541,41 +667,29 @@ export function InstagramFeed() {
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">AI Name</label>
-                    <Input
-                      type="text"
-                      placeholder="Enter a name for your AI"
-                      value={aiProfile.name}
-                      onChange={(e) => {
-                        setAIProfile((prev) => ({ ...prev, name: e.target.value }))
-                      }}
-                      onBlur={() => {
-                        if (aiProfile.name) {
-                          setCompletedSections(new Set(["aiType", "photoSubject", "photoStyle", "aiName"]))
-                        }
-                      }}
+                  <div className="space-y-4">  {/* Changed to space-y-4 for more space between input and button */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">AI Name</label>
+                      <Input
+                        type="text"
+                        placeholder="Enter a name for your AI"
+                        value={aiProfile.name}
+                        onChange={(e) => {
+                          const newName = e.target.value;
+                          setAIProfile((prev) => ({ ...prev, name: newName }));
+                        }}
+                        className="w-full"
+                      />
+                    </div>
+                    
+                    <Button
+                      onClick={handleCreateAI}
                       className="w-full"
-                    />
+                      disabled={!aiProfile.name || aiProfile.name.length < 3}
+                    >
+                      Create my Instagram AI
+                    </Button>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <AnimatePresence>
-              {completedSections.size === 4 && aiProfile.name && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Button
-                    onClick={handleCreateAI}
-                    className="w-full"
-                    disabled={!aiProfile.type || !aiProfile.photoSubject || !aiProfile.photoStyle || !aiProfile.name}
-                  >
-                    Create my Instagram AI
-                  </Button>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -594,13 +708,13 @@ export function InstagramFeed() {
             {posts.map((post, index) => (
               <Card key={post.id} className="overflow-hidden" ref={index === posts.length - 1 ? lastPostRef : null}>
                 <div className="p-4 flex items-center space-x-2">
-                <Avatar>
-  <AvatarImage 
-    src={aiProfile.name ? getAvatarUrl(aiProfile.name) : "/placeholder.svg"} 
-    alt={aiProfile.name || "AI"}
-  />
-  <AvatarFallback>{aiProfile?.name?.charAt(0) || "AI"}</AvatarFallback>
-</Avatar>
+                  <Avatar>
+                    <AvatarImage
+                      src={aiProfile.name ? getAvatarUrl(aiProfile.name) : "/placeholder.svg"}
+                      alt={aiProfile.name || "AI"}
+                    />
+                    <AvatarFallback>{aiProfile?.name?.charAt(0) || "AI"}</AvatarFallback>
+                  </Avatar>
                   <div className="font-semibold">{aiProfile?.name || "AI Creator"}</div>
                 </div>
 
@@ -689,6 +803,27 @@ export function InstagramFeed() {
           </>
         )}
       </div>
+      <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Welcome to AI-stagram!</DialogTitle>
+            <DialogDescription className="space-y-4">
+              <p className="mb-4">
+                AI-stagram is your personal AI-powered Instagram feed generator. Here's what you can do:
+              </p>
+              <ul className="list-disc pl-4 space-y-2">
+                <li>Like and bookmark generated posts</li>
+                <li>Download individual images or the entire feed</li>
+                <li>Share your AI-generated feed with others</li>
+                <li>Add comments to posts</li>
+              </ul>
+              <p>
+                Want to create a new AI feed? Just refresh the page to start over!
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
