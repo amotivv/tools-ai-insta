@@ -1,74 +1,39 @@
 import { NextResponse } from "next/server"
 import { withAdmin } from "../middleware"
-import { prisma } from "@/lib/prisma"
+import { listFeeds, updateFeedStatus } from "../actions"
+
+export const runtime = "nodejs"
 
 // GET /api/admin/feeds - List all shared feeds
-async function GET(req: Request) {
-  const { searchParams } = new URL(req.url)
-  const userId = searchParams.get('userId')
-  const page = parseInt(searchParams.get('page') || '1')
-  const limit = parseInt(searchParams.get('limit') || '20')
-  const skip = (page - 1) * limit
+export const GET = withAdmin(async (req: Request) => {
+  try {
+    const { searchParams } = new URL(req.url)
+    const userId = searchParams.get('userId')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
 
-  const where = userId ? { userId } : {}
-
-  const [feeds, total] = await Promise.all([
-    prisma.sharedFeed.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            isActive: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      skip,
-      take: limit
-    }),
-    prisma.sharedFeed.count({ where })
-  ])
-
-  return NextResponse.json({
-    feeds,
-    pagination: {
-      total,
-      pages: Math.ceil(total / limit),
-      current: page,
-      limit
-    }
-  })
-}
+    const result = await listFeeds(userId || undefined, page, limit)
+    return NextResponse.json(result)
+  } catch (error) {
+    console.error("[Admin] Error listing feeds:", error)
+    return NextResponse.json(
+      { error: "Failed to list feeds" },
+      { status: 500 }
+    )
+  }
+})
 
 // PATCH /api/admin/feeds/:id - Update feed status
-async function PATCH(req: Request) {
-  const { feedId, isActive } = await req.json()
-
-  const feed = await prisma.sharedFeed.update({
-    where: { id: feedId },
-    data: { isActive },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true
-        }
-      }
-    }
-  })
-
-  return NextResponse.json({ feed })
-}
-
-export { GET, PATCH }
-
-// Wrap handlers with admin middleware
-export const runtime = "edge"
-export const GET_wrapped = withAdmin(GET)
-export const PATCH_wrapped = withAdmin(PATCH)
+export const PATCH = withAdmin(async (req: Request) => {
+  try {
+    const { feedId, isActive } = await req.json()
+    const feed = await updateFeedStatus(feedId, isActive)
+    return NextResponse.json({ feed })
+  } catch (error) {
+    console.error("[Admin] Error updating feed:", error)
+    return NextResponse.json(
+      { error: "Failed to update feed" },
+      { status: 500 }
+    )
+  }
+})

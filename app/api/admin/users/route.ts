@@ -1,63 +1,34 @@
 import { NextResponse } from "next/server"
 import { withAdmin } from "../middleware"
-import { prisma } from "@/lib/prisma"
+import { listUsers, updateUserStatus } from "../actions"
+
+export const runtime = "nodejs"
 
 // GET /api/admin/users - List all users
-async function GET() {
-  const users = await prisma.user.findMany({
-    include: {
-      accounts: {
-        select: {
-          provider: true,
-          scope: true
-        }
-      },
-      generatedImages: {
-        select: {
-          id: true
-        }
-      },
-      sharedFeeds: {
-        select: {
-          id: true,
-          views: true
-        }
-      },
-      _count: {
-        select: {
-          generatedImages: true,
-          sharedFeeds: true
-        }
-      }
-    },
-    orderBy: {
-      createdAt: 'desc'
-    }
-  })
-
-  return NextResponse.json({ users })
-}
+export const GET = withAdmin(async () => {
+  try {
+    const users = await listUsers()
+    return NextResponse.json({ users })
+  } catch (error) {
+    console.error("[Admin] Error listing users:", error)
+    return NextResponse.json(
+      { error: "Failed to list users" },
+      { status: 500 }
+    )
+  }
+})
 
 // PATCH /api/admin/users/:id - Update user status
-async function PATCH(req: Request) {
-  const { userId, isActive } = await req.json()
-
-  const user = await prisma.user.update({
-    where: { id: userId },
-    data: { isActive },
-    select: {
-      id: true,
-      email: true,
-      isActive: true
-    }
-  })
-
-  return NextResponse.json({ user })
-}
-
-export { GET, PATCH }
-
-// Wrap handlers with admin middleware
-export const runtime = "edge"
-export const GET_wrapped = withAdmin(GET)
-export const PATCH_wrapped = withAdmin(PATCH)
+export const PATCH = withAdmin(async (req: Request) => {
+  try {
+    const { userId, isActive } = await req.json()
+    const user = await updateUserStatus(userId, isActive)
+    return NextResponse.json({ user })
+  } catch (error) {
+    console.error("[Admin] Error updating user:", error)
+    return NextResponse.json(
+      { error: "Failed to update user" },
+      { status: 500 }
+    )
+  }
+})
