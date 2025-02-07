@@ -1,7 +1,15 @@
 import { Suspense } from "react"
 import { InstagramFeed } from "./instagram-feed"
+import { auth } from "./api/auth/[...nextauth]/route"
+import { redirect } from "next/navigation"
 
-export default function Page() {
+export default async function Page() {
+  const session = await auth()
+  
+  if (!session) {
+    redirect('/auth/signin')
+  }
+
   return (
     <main className="max-w-lg mx-auto bg-off-white min-h-screen">
       <Suspense fallback={<FeedSkeleton />}>
@@ -26,4 +34,3 @@ function FeedSkeleton() {
     </div>
   )
 }
-

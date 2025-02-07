@@ -17,11 +17,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Special handling for root path
-  if (pathname === "/") {
-    return NextResponse.next()
-  }
-
   try {
     const token = await getToken({ 
       req: request,
@@ -51,7 +46,8 @@ export const config = {
      * - api/auth (auth endpoints)
      * - _next (Next.js internals)
      * - favicon.ico (favicon file)
+     * - auth/signin (sign in page)
      */
-    "/((?!api/auth|_next|favicon.ico).*)"
+    "/((?!api/auth|_next|favicon.ico|auth/signin).*)"
   ]
 }
