@@ -8,7 +8,7 @@ import { Suspense } from "react"
 
 function SignInContent() {
   const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get("callbackUrl") || "/"
+  const callbackUrl = searchParams.get("callbackUrl") || "https://v0-insta-ai.vercel.app"
   
   console.log("[SignIn] Params:", {
     callbackUrl,
@@ -16,9 +16,9 @@ function SignInContent() {
   })
 
   const handleSignIn = () => {
-    console.log("[SignIn] Starting GitHub sign in")
+    console.log("[SignIn] Starting GitHub sign in with callback:", callbackUrl)
     signIn("github", { 
-      callbackUrl,
+      callbackUrl: callbackUrl.replace(/\/$/, ""), // Remove trailing slash if present
       redirect: true,
     })
   }

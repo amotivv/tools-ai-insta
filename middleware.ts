@@ -30,8 +30,9 @@ export async function middleware(request: NextRequest) {
   } catch (error) {
     console.error("[Middleware] Auth error:", error)
     // On error, redirect to sign-in as a fallback
-    const signInUrl = new URL("/auth/signin", request.url)
-    return NextResponse.redirect(signInUrl)
+      const signInUrl = new URL("/auth/signin", "https://v0-insta-ai.vercel.app")
+      signInUrl.searchParams.set("callbackUrl", "https://v0-insta-ai.vercel.app")
+      return NextResponse.redirect(signInUrl.toString())
   }
 }
 
