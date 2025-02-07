@@ -161,7 +161,10 @@ export function AdminDashboard({ initialUsers, initialFeeds }: AdminDashboardPro
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.tier === "PREMIUM" ? "default" : "secondary"}>
+                      <Badge 
+                        variant={user.tier === "PREMIUM" ? "default" : "outline"}
+                        className={user.tier === "PREMIUM" ? "bg-blue-500 hover:bg-blue-600" : "border-gray-400 text-gray-700"}
+                      >
                         {user.tier}
                       </Badge>
                     </TableCell>
