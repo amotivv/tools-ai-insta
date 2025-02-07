@@ -1,6 +1,7 @@
 "use client"
 
-import { Heart, Share2, Download, HelpCircle } from "lucide-react"
+import { Heart, Share2, Download, HelpCircle, LogOut } from "lucide-react"
+import { signOut, useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -12,6 +13,7 @@ interface HeaderProps {
 }
 
 export function Header({ onDownloadAll, onShare, onShowTour }: HeaderProps) {
+  const { data: session } = useSession()
   const [isLiked, setIsLiked] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
 
@@ -33,41 +35,52 @@ export function Header({ onDownloadAll, onShare, onShowTour }: HeaderProps) {
         <span className="text-primary font-semibold">AI-stagram</span>
       </div>
       <div className="flex items-center space-x-4">
-        <AnimatePresence>
-          <motion.div
-            key={`header-like-${isLiked}`}
-            initial={{ scale: 1 }}
-            animate={{ scale: isLiked ? [1, 1.2, 1] : 1 }}
-            exit={{ scale: 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Button variant="ghost" size="icon" onClick={() => setIsLiked(!isLiked)}>
-              <Heart className={`w-6 h-6 ${isLiked ? "fill-primary text-primary" : "text-dark-gray"}`} />
+        {session?.user && (
+          <>
+            <AnimatePresence>
+              <motion.div
+                key={`header-like-${isLiked}`}
+                initial={{ scale: 1 }}
+                animate={{ scale: isLiked ? [1, 1.2, 1] : 1 }}
+                exit={{ scale: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Button variant="ghost" size="icon" onClick={() => setIsLiked(!isLiked)}>
+                  <Heart className={`w-6 h-6 ${isLiked ? "fill-primary text-primary" : "text-dark-gray"}`} />
+                </Button>
+              </motion.div>
+            </AnimatePresence>
+            {onShowTour && (
+              <Button variant="ghost" size="icon" onClick={onShowTour}>
+                <HelpCircle className="w-6 h-6 text-dark-gray" />
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" onClick={handleShare} disabled={isSharing}>
+              {isSharing ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                >
+                  <Share2 className="w-6 h-6 text-dark-gray" />
+                </motion.div>
+              ) : (
+                <Share2 className="w-6 h-6 text-dark-gray" />
+              )}
             </Button>
-          </motion.div>
-        </AnimatePresence>
-        {onShowTour && (  // Only show if prop is provided
-          <Button variant="ghost" size="icon" onClick={onShowTour}>
-            <HelpCircle className="w-6 h-6 text-dark-gray" />
-          </Button>
-        )}
-        <Button variant="ghost" size="icon" onClick={handleShare} disabled={isSharing}>
-          {isSharing ? (
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+            <Button variant="ghost" size="icon" onClick={onDownloadAll}>
+              <Download className="w-6 h-6 text-dark-gray" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => signOut({ callbackUrl: "/" })}
+              title="Sign out"
             >
-              <Share2 className="w-6 h-6 text-dark-gray" />
-            </motion.div>
-          ) : (
-            <Share2 className="w-6 h-6 text-dark-gray" />
-          )}
-        </Button>
-        <Button variant="ghost" size="icon" onClick={onDownloadAll}>
-          <Download className="w-6 h-6 text-dark-gray" />
-        </Button>
+              <LogOut className="w-6 h-6 text-dark-gray" />
+            </Button>
+          </>
+        )}
       </div>
     </header>
   )
 }
-

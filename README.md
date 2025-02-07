@@ -4,6 +4,20 @@
 
 ## Features
 
+- **Authentication & User Management:**
+  - GitHub OAuth integration for secure sign-in
+  - JWT session handling with NextAuth.js
+  - User tier system (Basic/Premium)
+  - Protected routes and authenticated actions
+  - Elegant sign-in page and header integration
+
+- **Storage & Data Management:**
+  - PostgreSQL database with Prisma ORM
+  - Vercel KV (Redis) for fast image caching
+  - Vercel Blob storage for generated images
+  - User-specific storage organization
+  - Efficient data relationships and tracking
+
 - **Dynamic AI Content Generation:**  
   Generate unique image prompts and AI‑generated images on the fly using:
   - [OpenAI GPT‑based text generation](https://openai.com)
@@ -21,15 +35,24 @@
 
 ## Tech Stack
 
-- **Framework:** Next.js 14 (App Router)
+- **Framework & Auth:**
+  - Next.js 14 (App Router)
+  - NextAuth.js for authentication
+  - Middleware for route protection
 - **Language:** TypeScript, React
 - **Styling:** Tailwind CSS
 - **UI Components:**  
   Shadcn UI (built on Radix UI), Framer Motion, Embla Carousel, and others
+- **Database & Storage:**
+  - PostgreSQL (via Neon.tech)
+  - Prisma ORM for type-safe queries
+  - Vercel KV (Redis) for caching
+  - Vercel Blob for image storage
+
 - **APIs & Services:**  
   - Replicate API (for image generation)  
   - OpenAI API (for text/prompt generation)  
-  - Vercel KV (for sharing feed data)
+  - GitHub OAuth API (for authentication)
 - **Utilities:**  
   - `nanoid` for unique IDs  
   - `jszip` for downloading multiple images as a ZIP
@@ -57,11 +80,27 @@
 
 3. **Configure Environment Variables:**
 
-   Create a `.env.local` file in the root of your project and add your API tokens:
+   Create a `.env.local` file in the root of your project and add your credentials:
 
    ```env
+   # API Keys
    REPLICATE_API_TOKEN=your_replicate_api_token_here
    OPENAI_API_KEY=your_openai_api_key_here
+
+   # Database
+   DATABASE_URL=your_neon_postgres_url_here
+
+   # Auth
+   GITHUB_ID=your_github_oauth_app_id
+   GITHUB_SECRET=your_github_oauth_app_secret
+   NEXTAUTH_URL=http://localhost:3000
+   NEXTAUTH_SECRET=your_nextauth_secret
+
+   # Storage
+   BLOB_READ_WRITE_TOKEN=your_vercel_blob_token
+   KV_URL=your_vercel_kv_redis_url
+   KV_REST_API_URL=your_vercel_kv_rest_url
+   KV_REST_API_TOKEN=your_vercel_kv_token
    ```
 
 4. **Run the development server:**
@@ -73,6 +112,11 @@
    Open [http://localhost:3000](http://localhost:3000) in your browser to see the app in action.
 
 ## Usage
+
+- **Authentication:**
+  1. Click "Continue with GitHub" to sign in
+  2. Authorize the application
+  3. You'll be redirected back with full access
 
 - **Create Your AI Feed:**
   1. Select an AI type from the available options.
@@ -96,7 +140,10 @@
 ai-stagram/
 ├── app/
 │   ├── api/
-│   │   └── share/route.ts      # API route for sharing feeds
+│   │   ├── auth/[...nextauth]/   # NextAuth configuration
+│   │   └── share/                # Feed sharing endpoints
+│   ├── auth/
+│   │   └── signin/              # Custom sign-in page
 │   ├── shared/[id]/page.tsx     # Page for displaying shared feeds
 │   ├── actions.ts             # Server actions for generating prompts and images
 │   ├── constants.ts           # AI types and other constant values
@@ -105,9 +152,13 @@ ai-stagram/
 │   ├── layout.tsx             # Root layout
 │   ├── page.tsx               # Main entry point rendering the feed
 │   └── globals.css            # Global styles for the app
-├── components/                # Reusable UI components (Radix UI, shadcn UI, etc.)
+├── components/
+│   ├── ui/                   # Shadcn UI components
+│   └── providers.tsx         # Auth & theme providers
 ├── hooks/                     # Custom React hooks (e.g., use-mobile, use-toast)
-├── lib/                       # Utility functions (e.g., classnames helper)
+├── lib/
+│   ├── utils.ts              # Utility functions
+│   └── prisma.ts             # Prisma client instance
 ├── styles/                    # Additional global styles
 ├── package.json
 ├── next.config.mjs
@@ -115,9 +166,35 @@ ai-stagram/
 └── tsconfig.json
 ```
 
+## Development Tools
+
+- **Prisma Studio:**
+  ```bash
+  npx prisma studio
+  ```
+  Access database records at http://localhost:5555
+
+- **Vercel CLI:**
+  ```bash
+  # Install CLI
+  npm i -g vercel
+
+  # Link project
+  vercel link
+
+  # Pull env vars
+  vercel env pull
+  ```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to open issues or submit pull requests with improvements, bug fixes, or new features.
+
+## Data Management
+
+- **Database:** Access records via Prisma Studio
+- **KV Storage:** Manage through Vercel dashboard
+- **Blob Storage:** View and manage in Vercel Storage section
 
 ## License
 

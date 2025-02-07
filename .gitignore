@@ -53,6 +53,20 @@ debug.log
 .env.test.local
 .env.production.local
 
+# Prisma
+/prisma/*.db
+/prisma/.env
+*.prisma.backup
+
+# Generated Prisma Client
+node_modules/.prisma
+node_modules/@prisma/client
+
+# Vercel
+.vercel
+.vercel/
+.now/
+
 # IDE - VSCode
 .vscode/*
 !.vscode/settings.json
@@ -98,6 +112,12 @@ pids
 
 # Optional stylelint cache
 .stylelintcache
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
 
 # Misc
 *.bak

@@ -1,6 +1,7 @@
 import { Toaster } from "sonner"
 import type React from "react"
 import "./globals.css"
+import { Providers } from "./providers"
 
 export default function RootLayout({
   children,
@@ -16,10 +17,11 @@ export default function RootLayout({
         />
       </head>
       <body className="font-mono bg-off-white">
-        {children}
-        <Toaster />
+        <Providers>
+          {children}
+          <Toaster />
+        </Providers>
       </body>
     </html>
   )
 }
-

@@ -118,7 +118,19 @@ export async function generatePrompts(
   }
 }
 
+import { auth } from "./api/auth/[...nextauth]/route"
+import { kv } from "@vercel/kv"
+import { prisma } from "@/lib/prisma"
+
 export async function generateImage(prompt: string): Promise<ActionResponse<string>> {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return {
+      success: false,
+      error: "Authentication required"
+    }
+  }
+
   if (!REPLICATE_API_TOKEN) {
     return {
       success: false,
@@ -127,6 +139,13 @@ export async function generateImage(prompt: string): Promise<ActionResponse<stri
   }
 
   try {
+    // Check KV cache first
+    const cacheKey = `image:${session.user.id}:${prompt}`
+    const cachedImage = await kv.get(cacheKey)
+    if (cachedImage) {
+      return { success: true, data: cachedImage as string }
+    }
+
     const response = await fetch("https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions", {
       method: "POST",
       headers: {
@@ -177,14 +196,30 @@ export async function generateImage(prompt: string): Promise<ActionResponse<stri
         const response = await fetch(replicateUrl)
         const imageBlob = await response.blob()
 
+        const blobKey = `ai-images/${session.user.id}/${Date.now()}.png`
         const { url } = await put(
-          `ai-images/${Date.now()}.png`,
+          blobKey,
           imageBlob,
           {
             access: 'public',
             addRandomSuffix: true
           }
         )
+
+        // Store in KV cache
+        await kv.set(cacheKey, url)
+
+        // Store in database
+        await prisma.generatedImage.create({
+          data: {
+            userId: session.user.id,
+            prompt,
+            imageUrl: url,
+            blobKey,
+            cacheKey,
+            isPublic: true
+          }
+        })
 
         return { success: true, data: url }
       }
@@ -211,4 +246,3 @@ export async function generateImage(prompt: string): Promise<ActionResponse<stri
     }
   }
 }
-
