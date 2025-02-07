@@ -139,8 +139,15 @@ const config = {
       })
       
       if (session.user) {
+        // Get fresh user data on each session
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string }
+        })
+        
         session.user.id = token.id as string
-        session.user.tier = token.tier as string
+        session.user.tier = dbUser?.tier || "BASIC"
+        
+        console.log("[NextAuth] Updated session with tier:", dbUser?.tier)
       }
       return session
     },

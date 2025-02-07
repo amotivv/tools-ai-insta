@@ -78,7 +78,14 @@ export function AdminDashboard({ initialUsers, initialFeeds }: AdminDashboardPro
           u.id === userId ? { ...u, tier: user.tier } : u
         )
       )
-      toast.success(`User tier updated to ${user.tier} successfully`)
+
+      // Notify user to refresh their session
+      toast.success(
+        <div>
+          <p>User tier updated to {user.tier} successfully</p>
+          <p className="text-sm text-gray-500">User may need to refresh their page to see changes</p>
+        </div>
+      )
     } catch (error) {
       console.error("[Admin] Error updating user tier:", error)
       toast.error("Failed to update user tier")

@@ -1,7 +1,7 @@
 "use client"
 
 import { Share2, Download, HelpCircle, LogOut, Crown } from "lucide-react"
-import { signOut, useSession } from "next-auth/react"
+import { signOut, useSession, getSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
@@ -14,7 +14,7 @@ interface HeaderProps {
 }
 
 export function Header({ onDownloadAll, onShare, onShowTour }: HeaderProps) {
-  const { data: session } = useSession()
+  const { data: session, update: updateSession } = useSession()
   const [isSharing, setIsSharing] = useState(false)
 
   const handleShare = async () => {
@@ -47,7 +47,14 @@ export function Header({ onDownloadAll, onShare, onShowTour }: HeaderProps) {
         {session?.user && (
           <>
             {onShowTour && (
-              <Button variant="ghost" size="icon" onClick={onShowTour}>
+              <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={async () => {
+                await updateSession()
+                onShowTour?.()
+              }}
+            >
                 <HelpCircle className="w-6 h-6 text-dark-gray" />
               </Button>
             )}
