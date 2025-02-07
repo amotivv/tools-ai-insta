@@ -35,6 +35,7 @@ const config = {
   session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24 hours
   },
   cookies: {
     sessionToken: {
@@ -48,6 +49,13 @@ const config = {
     }
   },
   callbacks: {
+    async signIn({ user, account }) {
+      console.log("[NextAuth] Sign In Callback:", { 
+        user,
+        account 
+      })
+      return true
+    },
     async jwt({ token, user, account }) {
       console.log("[NextAuth] JWT Callback:", { 
         hasUser: !!user, 

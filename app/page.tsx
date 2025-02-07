@@ -12,7 +12,7 @@ export default async function Page() {
     user: session?.user,
   })
   
-  if (!session) {
+  if (!session?.user) {
     console.log("[Page] No session, redirecting to sign-in")
     redirect('/auth/signin')
   }

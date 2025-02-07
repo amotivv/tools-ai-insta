@@ -20,30 +20,13 @@ export async function middleware(request: NextRequest) {
   try {
     console.log("[Middleware] Checking path:", pathname)
     
-    const token = await getToken({ 
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET 
-    })
-
-    console.log("[Middleware] Token exists:", !!token)
-    if (token) {
-      console.log("[Middleware] Token data:", {
-        id: token.id,
-        email: token.email,
-        name: token.name
-      })
-    }
-
-    // Redirect to sign-in if no token
-    if (!token) {
-      console.log("[Middleware] No token, redirecting to sign-in")
-      const signInUrl = new URL("/auth/signin", request.url)
-      signInUrl.searchParams.set("callbackUrl", request.url)
-      return NextResponse.redirect(signInUrl)
-    }
-
-    console.log("[Middleware] Token valid, proceeding")
-    return NextResponse.next()
+    const response = NextResponse.next()
+    
+    // Add CORS headers
+    response.headers.append('Access-Control-Allow-Credentials', 'true')
+    response.headers.append('Access-Control-Allow-Origin', request.headers.get('origin') || '*')
+    
+    return response
   } catch (error) {
     console.error("[Middleware] Auth error:", error)
     // On error, redirect to sign-in as a fallback
@@ -53,14 +36,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - api/auth (auth endpoints)
-     * - _next (Next.js internals)
-     * - favicon.ico (favicon file)
-     * - auth/signin (sign in page)
-     */
-    "/((?!api/auth|_next|favicon.ico|auth/signin).*)"
-  ]
+  matcher: []
 }
