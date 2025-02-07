@@ -3,6 +3,23 @@ import { kv } from '@vercel/kv'
 
 export const runtime = 'edge'
 
+// Allow external access
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+// CORS headers
+export async function OPTIONS(request: Request) {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Max-Age': '86400',
+    },
+  })
+}
+
 interface SharedFeed {
   aiProfile: {
     name: string
@@ -23,6 +40,12 @@ const ibmPlexMono = fetch(
 ).then((res) => res.arrayBuffer())
 
 export async function GET(request: Request) {
+  // Add CORS headers
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Content-Type': 'image/png',
+  }
   const baseUrl = 'https://v0-insta-ai.vercel.app'
   const font = await ibmPlexMono
 
@@ -31,14 +54,20 @@ export async function GET(request: Request) {
     const id = searchParams.get('id')
 
     if (!id) {
-      return new Response('Missing feed ID', { status: 400 })
+      return new Response('Missing feed ID', { 
+        status: 400,
+        headers
+      })
     }
 
     // Get the feed data from KV
     const feed = await kv.get<SharedFeed>(`feed:${id}`)
 
     if (!feed) {
-      return new Response('Feed not found', { status: 404 })
+      return new Response('Feed not found', { 
+        status: 404,
+        headers
+      })
     }
     // Get and convert the first image
     let imageData: string | undefined
