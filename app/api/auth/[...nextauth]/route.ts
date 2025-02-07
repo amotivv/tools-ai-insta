@@ -13,12 +13,24 @@ declare module "next-auth" {
 }
 
 const config = {
+  debug: true,
   providers: [
     GitHub({
       clientId: process.env.GITHUB_ID!,
       clientSecret: process.env.GITHUB_SECRET!,
     }),
   ],
+  events: {
+    async signIn(message) {
+      console.log("[NextAuth] Sign in:", message)
+    },
+    async signOut(message) {
+      console.log("[NextAuth] Sign out:", message)
+    },
+    async session(message) {
+      console.log("[NextAuth] Session:", message)
+    }
+  },
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
@@ -37,6 +49,12 @@ const config = {
   },
   callbacks: {
     async jwt({ token, user, account }) {
+      console.log("[NextAuth] JWT Callback:", { 
+        hasUser: !!user, 
+        hasAccount: !!account,
+        token 
+      })
+      
       if (account && user) {
         token.id = user.id
         token.tier = "BASIC"
@@ -45,6 +63,11 @@ const config = {
       return token
     },
     async session({ session, token }) {
+      console.log("[NextAuth] Session Callback:", { 
+        hasUser: !!session?.user,
+        token 
+      })
+      
       if (session.user) {
         session.user.id = token.id as string
         session.user.tier = token.tier as string

@@ -18,21 +18,34 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
+    console.log("[Middleware] Checking path:", pathname)
+    
     const token = await getToken({ 
       req: request,
       secret: process.env.NEXTAUTH_SECRET 
     })
 
+    console.log("[Middleware] Token exists:", !!token)
+    if (token) {
+      console.log("[Middleware] Token data:", {
+        id: token.id,
+        email: token.email,
+        name: token.name
+      })
+    }
+
     // Redirect to sign-in if no token
     if (!token) {
+      console.log("[Middleware] No token, redirecting to sign-in")
       const signInUrl = new URL("/auth/signin", request.url)
       signInUrl.searchParams.set("callbackUrl", request.url)
       return NextResponse.redirect(signInUrl)
     }
 
+    console.log("[Middleware] Token valid, proceeding")
     return NextResponse.next()
   } catch (error) {
-    console.error("Auth middleware error:", error)
+    console.error("[Middleware] Auth error:", error)
     // On error, redirect to sign-in as a fallback
     const signInUrl = new URL("/auth/signin", request.url)
     return NextResponse.redirect(signInUrl)

@@ -10,6 +10,19 @@ function SignInContent() {
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl") || "/"
   
+  console.log("[SignIn] Params:", {
+    callbackUrl,
+    searchParams: Object.fromEntries(searchParams.entries())
+  })
+
+  const handleSignIn = () => {
+    console.log("[SignIn] Starting GitHub sign in")
+    signIn("github", { 
+      callbackUrl,
+      redirect: true,
+    })
+  }
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-96 p-6 space-y-6">
@@ -24,10 +37,7 @@ function SignInContent() {
           <Button
             className="w-full flex items-center justify-center gap-2"
             variant="outline"
-            onClick={() => signIn("github", { 
-              callbackUrl,
-              redirect: true,
-            })}
+            onClick={handleSignIn}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

@@ -4,11 +4,20 @@ import { auth } from "./api/auth/[...nextauth]/route"
 import { redirect } from "next/navigation"
 
 export default async function Page() {
+  console.log("[Page] Checking auth")
   const session = await auth()
   
+  console.log("[Page] Session:", {
+    exists: !!session,
+    user: session?.user,
+  })
+  
   if (!session) {
+    console.log("[Page] No session, redirecting to sign-in")
     redirect('/auth/signin')
   }
+
+  console.log("[Page] Session valid, rendering feed")
 
   return (
     <main className="max-w-lg mx-auto bg-off-white min-h-screen">
