@@ -21,7 +21,7 @@ export const metadata = {
     description: 'Create your AI-powered Instagram feed',
     siteName: 'AI-stagram',
     images: [{
-      url: '/og-image.png',
+      url: `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/og-image.png`,
       width: 1200,
       height: 630,
       alt: 'AI-stagram - Create your AI Instagram feed'
@@ -31,13 +31,13 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'AI-stagram',
     description: 'Create your AI-powered Instagram feed',
-    images: ['/og-image.png'],
+    images: [`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/og-image.png`],
     creator: '@aistagram'
   },
   icons: {
-    icon: '/placeholder-logo.svg',
-    shortcut: '/placeholder-logo.svg',
-    apple: '/placeholder-logo.svg',
+    icon: `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/placeholder-logo.svg`,
+    shortcut: `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/placeholder-logo.svg`,
+    apple: `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/placeholder-logo.svg`,
   },
   manifest: '/manifest.json'
 }

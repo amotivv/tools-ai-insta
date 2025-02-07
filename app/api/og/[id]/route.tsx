@@ -23,6 +23,9 @@ const ibmPlexMono = fetch(
 ).then((res) => res.arrayBuffer())
 
 export async function GET(request: Request) {
+  const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'
+  const font = await ibmPlexMono
+
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -37,10 +40,11 @@ export async function GET(request: Request) {
     if (!feed) {
       return new Response('Feed not found', { status: 404 })
     }
-
-    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'
-    const firstImage = feed.posts[0]?.image || `${baseUrl}/placeholder.jpg`
-    const font = await ibmPlexMono
+    // Ensure we have a valid image URL
+    let imageUrl = feed.posts[0]?.image
+    if (!imageUrl || !imageUrl.startsWith('http')) {
+      imageUrl = `${baseUrl}/placeholder.jpg`
+    }
 
     return new ImageResponse(
       (
@@ -55,7 +59,7 @@ export async function GET(request: Request) {
         >
           <div style={{ flex: '1', position: 'relative' }}>
             <img
-              src={firstImage}
+              src={imageUrl}
               alt=""
               style={{
                 objectFit: 'cover',
@@ -138,6 +142,59 @@ export async function GET(request: Request) {
     )
   } catch (error) {
     console.error('Error generating OG image:', error)
-    return new Response('Error generating image', { status: 500 })
+    
+    // Return a fallback image response instead of an error
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            background: 'white',
+            width: '1200',
+            height: '630',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: 'IBM Plex Mono',
+          }}
+        >
+          <img
+            src={`${baseUrl}/placeholder-logo.svg`}
+            alt=""
+            style={{ width: '80px', height: '80px', marginBottom: '24px' }}
+          />
+          <h1
+            style={{
+              fontSize: '48px',
+              color: '#333333',
+              marginBottom: '16px',
+              textAlign: 'center'
+            }}
+          >
+            AI-stagram Feed
+          </h1>
+          <p
+            style={{
+              fontSize: '24px',
+              color: '#666666',
+              textAlign: 'center'
+            }}
+          >
+            Generated with AI
+          </p>
+        </div>
+      ),
+      {
+        width: 1200,
+        height: 630,
+        fonts: [
+          {
+            name: 'IBM Plex Mono',
+            data: font,
+            style: 'normal'
+          }
+        ]
+      }
+    )
   }
 }
