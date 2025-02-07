@@ -188,21 +188,34 @@ ai-stagram/
    - Vercel automatically:
      * Detects changes
      * Generates Prisma Client
-     * Runs database migrations
      * Builds the application
      * Deploys to edge network
 
 4. **Monitor Deployment:**
    - Watch build progress in Vercel dashboard
    - Check build logs for any issues
-   - Verify database migrations
+   - Monitor database health
 
-### Database Migrations
+### Database Management
 
-Production migrations are handled automatically during deployment via:
-```bash
-prisma migrate deploy
-```
+#### Development
+- Migrations run automatically in development
+- Use Prisma Studio to manage data:
+  ```bash
+  npx prisma studio
+  ```
+
+#### Production
+- Migrations should be run manually before deployment:
+  ```bash
+  # Generate migration
+  npx prisma migrate dev
+
+  # After testing locally, deploy to production
+  npx prisma migrate deploy
+  ```
+- This prevents timeout issues during Vercel deployment
+- Always backup your database before running migrations
 
 ## Development Tools
 
