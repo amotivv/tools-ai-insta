@@ -125,8 +125,8 @@ import { prisma } from "@/lib/prisma"
 export async function generateImage(prompt: string): Promise<ActionResponse<string>> {
   try {
     const session = await auth()
-    if (!session?.user?.id) {
-      console.error("No user session found")
+    if (!session?.user?.email) {
+      console.error("No user email in session")
       return {
         success: false,
         error: "Authentication required"
@@ -142,7 +142,7 @@ export async function generateImage(prompt: string): Promise<ActionResponse<stri
     }
 
     // Check KV cache first
-    const cacheKey = `image:${session.user.id}:${prompt}`
+    const cacheKey = `image:${session.user.email}:${prompt}`
     const cachedImage = await kv.get(cacheKey)
     if (cachedImage) {
       return { success: true, data: cachedImage as string }
@@ -207,7 +207,7 @@ export async function generateImage(prompt: string): Promise<ActionResponse<stri
         const response = await fetch(replicateUrl)
         const imageBlob = await response.blob()
 
-        const blobKey = `ai-images/${session.user.id}/${Date.now()}.png`
+        const blobKey = `ai-images/${session.user.email}/${Date.now()}.png`
         console.log("[Generate] Image downloaded, uploading to blob storage...")
         const { url } = await put(
           blobKey,
@@ -225,10 +225,23 @@ export async function generateImage(prompt: string): Promise<ActionResponse<stri
           await kv.set(cacheKey, url)
           console.log("[Generate] Stored in KV cache")
 
+          // Get user from database
+          const user = await prisma.user.findUnique({
+            where: { 
+              email: session.user.email as string 
+            }
+          })
+
+          if (!user) {
+            throw new Error("User not found in database")
+          }
+
+          console.log("[Generate] Found user record:", user.id)
+
           // Store in database
           const dbImage = await prisma.generatedImage.create({
             data: {
-              userId: session.user.id,
+              userId: user.id,
               prompt,
               imageUrl: url,
               blobKey,

@@ -2,6 +2,7 @@ import NextAuth from "next-auth"
 import GitHub from "next-auth/providers/github"
 import type { NextAuthConfig } from "next-auth"
 import { DefaultSession } from "next-auth"
+import { prisma } from "@/lib/prisma"
 
 declare module "next-auth" {
   interface Session extends DefaultSession {
@@ -49,12 +50,36 @@ const config = {
     }
   },
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       console.log("[NextAuth] Sign In Callback:", { 
         user,
-        account 
+        account,
+        profile
       })
-      return true
+
+      try {
+        // Ensure user exists in database
+        const dbUser = await prisma.user.upsert({
+          where: { 
+            email: user.email as string 
+          },
+          update: {
+            name: user.name,
+            image: user.image,
+          },
+          create: {
+            id: user.id || undefined, // Let Prisma generate if not provided
+            email: user.email,
+            name: user.name,
+            image: user.image,
+          }
+        })
+        console.log("[NextAuth] User record:", { id: dbUser.id, email: dbUser.email })
+        return true
+      } catch (error) {
+        console.error("[NextAuth] Error creating user:", error)
+        return true // Still allow sign in even if DB fails
+      }
     },
     async jwt({ token, user, account }) {
       console.log("[NextAuth] JWT Callback:", { 
@@ -64,7 +89,11 @@ const config = {
       })
       
       if (account && user) {
-        token.id = user.id
+        // Use the database user ID
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email as string }
+        })
+        token.id = dbUser?.id || user.id
         token.tier = "BASIC"
         token.accessToken = account.access_token
       }
