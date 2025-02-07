@@ -747,18 +747,21 @@ export function InstagramFeed() {
                   <div className="font-semibold">{aiProfile?.name || "AI Creator"}</div>
                 </div>
 
-                <div className="aspect-square w-full bg-gray-100 relative">
-                  {post.image ? (
+                <div className="aspect-square w-full bg-gray-100 relative overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                  </div>
+                  {post.image && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={post.image || "/placeholder.svg"}
+                      src={post.image}
                       alt={`AI generated ${aiProfile?.photoStyle} image of ${aiProfile?.photoSubject}`}
-                      className="w-full h-full object-cover"
+                      className="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-300"
+                      onLoad={(e) => {
+                        // Once loaded, fade in the image
+                        (e.target as HTMLImageElement).style.opacity = "1"
+                      }}
                     />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                    </div>
                   )}
                 </div>
 
