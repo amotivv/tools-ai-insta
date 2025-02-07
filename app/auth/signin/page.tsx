@@ -3,8 +3,11 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { signIn } from "next-auth/react"
+import { useSearchParams } from "next/navigation"
 
 export default function SignIn() {
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get("callbackUrl") || "/"
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-96 p-6 space-y-6">
@@ -19,7 +22,10 @@ export default function SignIn() {
           <Button
             className="w-full flex items-center justify-center gap-2"
             variant="outline"
-            onClick={() => signIn("github", { callbackUrl: "/" })}
+            onClick={() => signIn("github", { 
+              callbackUrl,
+              redirect: true,
+            })}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
