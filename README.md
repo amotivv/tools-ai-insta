@@ -10,6 +10,8 @@
   - User tier system (Basic/Premium)
   - Protected routes and authenticated actions
   - Elegant sign-in page and header integration
+  - Admin dashboard for user and content management
+  - Role-based access control with admin scope
 
 - **Storage & Data Management:**
   - PostgreSQL database with Prisma ORM
@@ -134,6 +136,31 @@
   - When a feed is shared, the app stores the feed data in Vercel KV.  
   - Shared feeds can be viewed via a unique URL (e.g., `/shared/[id]`).
 
+## Admin Features
+
+- **Access Control:**
+  - Admin scope management through GitHub OAuth
+  - Protected admin routes and API endpoints
+  - Role persistence across sessions
+
+- **User Management:**
+  - View all system users
+  - Enable/disable user accounts
+  - Track user activity (images, shares)
+  - Monitor user engagement
+
+- **Content Management:**
+  - View all shared feeds
+  - Enable/disable shared content
+  - Track feed views and engagement
+  - Direct access to shared content
+
+- **Analytics:**
+  - User statistics
+  - Content engagement metrics
+  - Share tracking
+  - View count monitoring
+
 ## File Structure
 
 ```
@@ -141,7 +168,9 @@ ai-stagram/
 ├── app/
 │   ├── api/
 │   │   ├── auth/[...nextauth]/   # NextAuth configuration
-│   │   └── share/                # Feed sharing endpoints
+│   │   ├── share/                # Feed sharing endpoints
+│   │   └── admin/                # Admin API endpoints
+│   ├── admin/                    # Admin dashboard
 │   ├── auth/
 │   │   └── signin/              # Custom sign-in page
 │   ├── shared/[id]/page.tsx     # Page for displaying shared feeds
@@ -203,6 +232,16 @@ ai-stagram/
 - Use Prisma Studio to manage data:
   ```bash
   npx prisma studio
+  ```
+
+#### Admin Access
+- Set admin scope in Account table:
+  ```bash
+  # Open Prisma Studio
+  npx prisma studio
+
+  # Find your Account record
+  # Set scope to: "read:user,user:email,admin"
   ```
 
 #### Production
