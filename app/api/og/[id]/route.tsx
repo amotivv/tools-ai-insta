@@ -23,7 +23,7 @@ const ibmPlexMono = fetch(
 ).then((res) => res.arrayBuffer())
 
 export async function GET(request: Request) {
-  const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'
+  const baseUrl = 'https://v0-insta-ai.vercel.app'
   const font = await ibmPlexMono
 
   try {

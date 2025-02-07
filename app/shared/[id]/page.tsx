@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
         title: `${feed.aiProfile.name}'s AI Feed | AI-stagram`,
         description: `Check out ${feed.aiProfile.name}'s AI-generated Instagram feed of ${feed.aiProfile.photoStyle} ${feed.aiProfile.photoSubject} photos!`,
       images: [{
-        url: `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/og/${params.id}`,
+        url: `https://v0-insta-ai.vercel.app/api/og/${params.id}`,
         width: 1200,
         height: 630,
         alt: `${feed.aiProfile.name}'s AI-generated Instagram feed`
@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
         card: 'summary_large_image',
         title: `${feed.aiProfile.name}'s AI Feed | AI-stagram`,
         description: `Check out ${feed.aiProfile.name}'s AI-generated Instagram feed of ${feed.aiProfile.photoStyle} ${feed.aiProfile.photoSubject} photos!`,
-        images: [`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/og/${params.id}`],
+        images: [`https://v0-insta-ai.vercel.app/api/og/${params.id}`],
       }
     }
   } catch (error) {

@@ -4,7 +4,7 @@ import "./globals.css"
 import { Providers } from "./providers"
 
 export const metadata = {
-  metadataBase: new URL(process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
+  metadataBase: new URL('https://v0-insta-ai.vercel.app'),
   title: {
     default: 'AI-stagram',
     template: '%s | AI-stagram'
@@ -21,7 +21,7 @@ export const metadata = {
     description: 'Create your AI-powered Instagram feed',
     siteName: 'AI-stagram',
     images: [{
-      url: `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/og-image.png`,
+      url: 'https://v0-insta-ai.vercel.app/og-image.png',
       width: 1200,
       height: 630,
       alt: 'AI-stagram - Create your AI Instagram feed'
@@ -31,13 +31,13 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'AI-stagram',
     description: 'Create your AI-powered Instagram feed',
-    images: [`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/og-image.png`],
+    images: ['https://v0-insta-ai.vercel.app/og-image.png'],
     creator: '@aistagram'
   },
   icons: {
-    icon: `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/placeholder-logo.svg`,
-    shortcut: `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/placeholder-logo.svg`,
-    apple: `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/placeholder-logo.svg`,
+    icon: 'https://v0-insta-ai.vercel.app/placeholder-logo.svg',
+    shortcut: 'https://v0-insta-ai.vercel.app/placeholder-logo.svg',
+    apple: 'https://v0-insta-ai.vercel.app/placeholder-logo.svg',
   },
   manifest: '/manifest.json'
 }
