@@ -3,6 +3,45 @@ import type React from "react"
 import "./globals.css"
 import { Providers } from "./providers"
 
+export const metadata = {
+  metadataBase: new URL(process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'),
+  title: {
+    default: 'AI-stagram',
+    template: '%s | AI-stagram'
+  },
+  description: 'Create your AI-powered Instagram feed',
+  keywords: ['AI', 'Instagram', 'Feed Generator', 'AI Images', 'Social Media'],
+  authors: [{ name: 'AI-stagram' }],
+  creator: 'AI-stagram',
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: '/',
+    title: 'AI-stagram',
+    description: 'Create your AI-powered Instagram feed',
+    siteName: 'AI-stagram',
+    images: [{
+      url: '/api/og',
+      width: 1200,
+      height: 630,
+      alt: 'AI-stagram - Create your AI Instagram feed'
+    }]
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AI-stagram',
+    description: 'Create your AI-powered Instagram feed',
+    images: ['/api/og'],
+    creator: '@aistagram'
+  },
+  icons: {
+    icon: '/placeholder-logo.svg',
+    shortcut: '/placeholder-logo.svg',
+    apple: '/placeholder-logo.svg',
+  },
+  manifest: '/manifest.json'
+}
+
 export default function RootLayout({
   children,
 }: {

@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Heart, MessageCircle, Bookmark } from "lucide-react"
 import { prisma } from "@/lib/prisma"
+import { Metadata } from "next"
 
 interface SharedFeed {
   aiProfile: {
@@ -20,6 +21,40 @@ interface SharedFeed {
   }[]
   createdAt: string
   expiresAt: string
+}
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  try {
+    const feed = await kv.get<SharedFeed>(`feed:${params.id}`)
+    if (!feed) return {}
+
+    const ogImage = `/api/og/${params.id}`
+    
+    return {
+      title: `${feed.aiProfile.name}'s AI Feed`,
+      description: `Check out ${feed.aiProfile.name}'s AI-generated Instagram feed of ${feed.aiProfile.photoStyle} ${feed.aiProfile.photoSubject} photos!`,
+      openGraph: {
+        type: 'article',
+        title: `${feed.aiProfile.name}'s AI Feed | AI-stagram`,
+        description: `Check out ${feed.aiProfile.name}'s AI-generated Instagram feed of ${feed.aiProfile.photoStyle} ${feed.aiProfile.photoSubject} photos!`,
+        images: [{
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: `${feed.aiProfile.name}'s AI-generated Instagram feed`
+        }]
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: `${feed.aiProfile.name}'s AI Feed | AI-stagram`,
+        description: `Check out ${feed.aiProfile.name}'s AI-generated Instagram feed of ${feed.aiProfile.photoStyle} ${feed.aiProfile.photoSubject} photos!`,
+        images: [ogImage],
+      }
+    }
+  } catch (error) {
+    console.error('[SharedFeed] Error generating metadata:', error)
+    return {}
+  }
 }
 
 export default async function SharedFeedPage({ params }: { params: { id: string } }) {
