@@ -74,10 +74,43 @@ const config = {
             image: user.image,
           }
         })
+
+        // Preserve admin scope if it exists
+        if (account) {
+          const existingAccount = await prisma.account.findFirst({
+            where: {
+              provider: account.provider,
+              providerAccountId: account.providerAccountId,
+            }
+          })
+
+          const scope = existingAccount?.scope?.includes('admin') 
+            ? `${account.scope},admin`
+            : account.scope
+            
+          await prisma.account.upsert({
+            where: {
+              provider_providerAccountId: {
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+              }
+            },
+            update: {
+              ...account,
+              scope,
+              userId: dbUser.id,
+            },
+            create: {
+              ...account,
+              userId: dbUser.id,
+            }
+          })
+        }
+
         console.log("[NextAuth] User record:", { id: dbUser.id, email: dbUser.email })
         return true
       } catch (error) {
-        console.error("[NextAuth] Error creating user:", error)
+        console.error("[NextAuth] Error:", error)
         return true // Still allow sign in even if DB fails
       }
     },
