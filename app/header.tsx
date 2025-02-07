@@ -1,8 +1,9 @@
 "use client"
 
-import { Share2, Download, HelpCircle, LogOut } from "lucide-react"
+import { Share2, Download, HelpCircle, LogOut, Crown } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -32,6 +33,15 @@ export function Header({ onDownloadAll, onShare, onShowTour }: HeaderProps) {
       <div className="text-xl font-mono flex items-center">
         <Share2 className="w-6 h-6 mr-2 text-primary" />
         <span className="text-primary font-semibold">AI-stagram</span>
+        {session?.user?.tier === "PREMIUM" && (
+          <Badge 
+            variant="default" 
+            className="ml-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white flex items-center gap-1"
+          >
+            <Crown className="w-3 h-3" />
+            PREMIUM
+          </Badge>
+        )}
       </div>
       <div className="flex items-center space-x-4">
         {session?.user && (

@@ -127,7 +127,7 @@ const config = {
           where: { email: user.email as string }
         })
         token.id = dbUser?.id || user.id
-        token.tier = "BASIC"
+        token.tier = dbUser?.tier || "BASIC"
         token.accessToken = account.access_token
       }
       return token
