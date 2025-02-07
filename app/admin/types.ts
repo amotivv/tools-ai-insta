@@ -3,6 +3,7 @@ export interface AdminUser {
   name: string | null
   email: string | null
   isActive: boolean
+  tier: 'BASIC' | 'PREMIUM'
   createdAt: Date
   accounts: {
     provider: string

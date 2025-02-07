@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { withAdmin } from "../middleware"
-import { listUsers, updateUserStatus } from "../actions"
+import { listUsers, updateUserStatus, updateUserTier } from "../actions"
 
 export const runtime = "nodejs"
 
@@ -18,11 +18,23 @@ export const GET = withAdmin(async () => {
   }
 })
 
-// PATCH /api/admin/users/:id - Update user status
+// PATCH /api/admin/users/:id - Update user status or tier
 export const PATCH = withAdmin(async (req: Request) => {
   try {
-    const { userId, isActive } = await req.json()
-    const user = await updateUserStatus(userId, isActive)
+    const { userId, isActive, tier } = await req.json()
+    
+    let user;
+    if (tier !== undefined) {
+      user = await updateUserTier(userId, tier)
+    } else if (isActive !== undefined) {
+      user = await updateUserStatus(userId, isActive)
+    } else {
+      return NextResponse.json(
+        { error: "No update parameters provided" },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json({ user })
   } catch (error) {
     console.error("[Admin] Error updating user:", error)

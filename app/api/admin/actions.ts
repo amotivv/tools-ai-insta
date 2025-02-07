@@ -3,7 +3,13 @@ import { prisma } from "@/lib/prisma"
 
 export async function listUsers() {
   return await prisma.user.findMany({
-    include: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      isActive: true,
+      tier: true,
+      createdAt: true,
       accounts: {
         select: {
           provider: true,
@@ -67,7 +73,21 @@ export async function updateUserStatus(userId: string, isActive: boolean) {
     select: {
       id: true,
       email: true,
-      isActive: true
+      isActive: true,
+      tier: true
+    }
+  })
+}
+
+export async function updateUserTier(userId: string, tier: 'BASIC' | 'PREMIUM') {
+  return await prisma.user.update({
+    where: { id: userId },
+    data: { tier },
+    select: {
+      id: true,
+      email: true,
+      isActive: true,
+      tier: true
     }
   })
 }

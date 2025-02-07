@@ -55,6 +55,36 @@ export function AdminDashboard({ initialUsers, initialFeeds }: AdminDashboardPro
     }
   }
 
+  const handleToggleUserTier = async (userId: string, newTier: 'BASIC' | 'PREMIUM') => {
+    try {
+      const response = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          tier: newTier,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update user tier")
+      }
+
+      const { user } = await response.json()
+      setUsers(prevUsers =>
+        prevUsers.map(u =>
+          u.id === userId ? { ...u, tier: user.tier } : u
+        )
+      )
+      toast.success(`User tier updated to ${user.tier} successfully`)
+    } catch (error) {
+      console.error("[Admin] Error updating user tier:", error)
+      toast.error("Failed to update user tier")
+    }
+  }
+
   const handleToggleFeedStatus = async (feedId: string, currentStatus: boolean) => {
     try {
       const response = await fetch("/api/admin/feeds", {
@@ -109,6 +139,7 @@ export function AdminDashboard({ initialUsers, initialFeeds }: AdminDashboardPro
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Tier</TableHead>
                   <TableHead>Images</TableHead>
                   <TableHead>Shares</TableHead>
                   <TableHead>Created</TableHead>
@@ -129,19 +160,33 @@ export function AdminDashboard({ initialUsers, initialFeeds }: AdminDashboardPro
                         {user.isActive ? "Active" : "Disabled"}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      <Badge variant={user.tier === "PREMIUM" ? "default" : "secondary"}>
+                        {user.tier}
+                      </Badge>
+                    </TableCell>
                     <TableCell>{user._count.generatedImages}</TableCell>
                     <TableCell>{user._count.sharedFeeds}</TableCell>
                     <TableCell>
                       {new Date(user.createdAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant={user.isActive ? "destructive" : "default"}
-                        size="sm"
-                        onClick={() => handleToggleUserStatus(user.id, user.isActive)}
-                      >
-                        {user.isActive ? "Disable" : "Enable"}
-                      </Button>
+                      <div className="space-x-2">
+                        <Button
+                          variant={user.isActive ? "destructive" : "default"}
+                          size="sm"
+                          onClick={() => handleToggleUserStatus(user.id, user.isActive)}
+                        >
+                          {user.isActive ? "Disable" : "Enable"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleToggleUserTier(user.id, user.tier === "BASIC" ? "PREMIUM" : "BASIC")}
+                        >
+                          {user.tier === "BASIC" ? "Upgrade to Premium" : "Downgrade to Basic"}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
