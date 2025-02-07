@@ -102,7 +102,18 @@ export async function generatePrompts(
     - Avoid text or graphics in the image
     - Ensure Instagram-friendly composition
     
-    Return one prompt per line.`,
+    Important:
+    - Do NOT number the prompts
+    - Do NOT include any numbers or ordering
+    - Start each prompt directly with the description
+    
+    Format:
+    [description], [lighting], [angle/composition]
+    
+    Example:
+    Vintage car on empty street, golden hour light, low angle
+    
+    Return one prompt per line, following this exact format.`,
     })
 
     return {
