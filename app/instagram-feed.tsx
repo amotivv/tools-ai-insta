@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { generateImage, generatePrompts, generatePhotoSubjects, generatePhotoStyles } from "./actions"
+import { generateImage, generatePrompts, generatePhotoSubjects, generatePhotoStyles, likeImage } from "./actions"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -228,8 +228,9 @@ export function InstagramFeed() {
     setCompletedSections(new Set()) // Reset completed sections
   }, [aiProfile, generateNewPrompts])
 
-  const handleLike = useCallback((postId: string) => {
-    setPosts((prevPosts) =>
+  const handleLike = useCallback(async (postId: string) => {
+    // Optimistically update UI
+    setPosts((prevPosts: Post[]) =>
       prevPosts.map((post) =>
         post.id === postId
           ? {
@@ -240,6 +241,41 @@ export function InstagramFeed() {
           : post,
       ),
     )
+
+    try {
+      // Update database
+      const result = await likeImage(postId)
+      if (!result.success) {
+        // Revert on error
+        setPosts((prevPosts: Post[]) =>
+          prevPosts.map((post) =>
+            post.id === postId
+              ? {
+                ...post,
+                isLiked: !post.isLiked,
+                likes: post.isLiked ? post.likes + 1 : post.likes - 1,
+              }
+              : post,
+          ),
+        )
+        toast.error(result.error)
+      }
+    } catch (error) {
+      console.error("Failed to update likes:", error)
+      // Revert on error
+      setPosts((prevPosts: Post[]) =>
+        prevPosts.map((post) =>
+          post.id === postId
+            ? {
+              ...post,
+              isLiked: !post.isLiked,
+              likes: post.isLiked ? post.likes + 1 : post.likes - 1,
+            }
+            : post,
+        ),
+      )
+      toast.error("Failed to update likes")
+    }
   }, [])
 
   const handleBookmark = useCallback((postId: string) => {
@@ -388,13 +424,6 @@ export function InstagramFeed() {
   const getAvatarUrl = (name: string) => {
     // Using Dicebear's "initials" style - simple, clean, and professional
     return `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(name)}&backgroundColor=4f46e5`
-
-    // Alternative styles:
-    // Micah style (more playful):
-    // return `https://api.dicebear.com/7.x/micah/svg?seed=${encodeURIComponent(name)}`
-
-    // Bottts style (robot-like):
-    // return `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`
   }
 
   const handleShareAll = useCallback(async () => {
@@ -827,4 +856,3 @@ export function InstagramFeed() {
     </>
   )
 }
-

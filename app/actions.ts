@@ -122,6 +122,43 @@ import { auth } from "./api/auth/[...nextauth]/route"
 import { kv } from "@vercel/kv"
 import { prisma } from "@/lib/prisma"
 
+export async function likeImage(imageId: string): Promise<ActionResponse<number>> {
+  try {
+    const session = await auth()
+    if (!session?.user?.email) {
+      console.error("No user email in session")
+      return {
+        success: false,
+        error: "Authentication required"
+      }
+    }
+
+    console.log("[Like] Updating likes for image:", imageId)
+
+    const updatedImage = await prisma.generatedImage.update({
+      where: { id: imageId },
+      data: {
+        likes: {
+          increment: 1
+        }
+      }
+    })
+
+    console.log("[Like] Updated likes count:", updatedImage.likes)
+
+    return {
+      success: true,
+      data: updatedImage.likes
+    }
+  } catch (error) {
+    console.error("[Like] Error updating likes:", error)
+    return {
+      success: false,
+      error: "Failed to update likes. Please try again."
+    }
+  }
+}
+
 export async function generateImage(prompt: string): Promise<ActionResponse<string>> {
   try {
     const session = await auth()
