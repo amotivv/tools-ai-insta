@@ -24,11 +24,23 @@ const config = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
+  cookies: {
+    sessionToken: {
+      name: `__Secure-next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: true
+      }
+    }
+  },
   callbacks: {
     async jwt({ token, user, account }) {
       if (account && user) {
         token.id = user.id
         token.tier = "BASIC"
+        token.accessToken = account.access_token
       }
       return token
     },

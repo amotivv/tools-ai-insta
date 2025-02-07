@@ -6,12 +6,19 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Allow public paths
-  if (
-    pathname.startsWith("/api/auth") ||
-    pathname === "/auth/signin" ||
-    pathname.startsWith("/_next") ||
-    pathname.includes("favicon.ico")
-  ) {
+  const publicPaths = [
+    "/api/auth",
+    "/auth/signin",
+    "/_next",
+    "/favicon.ico",
+  ]
+
+  if (publicPaths.some(path => pathname.startsWith(path))) {
+    return NextResponse.next()
+  }
+
+  // Special handling for root path
+  if (pathname === "/") {
     return NextResponse.next()
   }
 
@@ -45,6 +52,6 @@ export const config = {
      * - _next (Next.js internals)
      * - favicon.ico (favicon file)
      */
-    "/((?!api/auth|_next/static|_next/image|favicon.ico).*)"
+    "/((?!api/auth|_next|favicon.ico).*)"
   ]
 }
