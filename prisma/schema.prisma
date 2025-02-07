@@ -37,6 +37,7 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   generatedImages GeneratedImage[]
+  sharedFeeds   SharedFeed[]
 }
 
 model GeneratedImage {
@@ -50,6 +51,20 @@ model GeneratedImage {
   createdAt DateTime @default(now())
   likes     Int      @default(0)
   isPublic  Boolean  @default(false)
+
+  @@index([userId])
+}
+
+model SharedFeed {
+  id          String   @id
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  images      String[] // Array of GeneratedImage IDs
+  views       Int      @default(0)
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+  metadata    Json
+  isActive    Boolean  @default(true)
 
   @@index([userId])
 }

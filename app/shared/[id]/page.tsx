@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Heart, MessageCircle, Bookmark } from "lucide-react"
+import { prisma } from "@/lib/prisma"
 
 interface SharedFeed {
   aiProfile: {
@@ -29,6 +30,22 @@ export default async function SharedFeedPage({ params }: { params: { id: string 
     // Check if feed exists
     if (!feed) {
       notFound()
+    }
+
+    // Increment view count in database
+    try {
+      await prisma.sharedFeed.update({
+        where: { id: params.id },
+        data: {
+          views: {
+            increment: 1
+          }
+        }
+      })
+      console.log("[SharedFeed] Incremented view count for:", params.id)
+    } catch (error) {
+      console.error("[SharedFeed] Error updating view count:", error)
+      // Continue showing the feed even if view count update fails
     }
 
     // Format the creation date
@@ -114,7 +131,7 @@ export default async function SharedFeedPage({ params }: { params: { id: string 
       </main>
     )
   } catch (error) {
-    console.error('Error fetching shared feed:', error)
+    console.error('[SharedFeed] Error fetching shared feed:', error)
     notFound()
   }
 }
