@@ -40,11 +40,21 @@ export async function GET(request: Request) {
     if (!feed) {
       return new Response('Feed not found', { status: 404 })
     }
-    // Ensure we have a valid image URL
-    let imageUrl = feed.posts[0]?.image
-    if (!imageUrl || !imageUrl.startsWith('http')) {
-      imageUrl = `${baseUrl}/placeholder.jpg`
+    // Get and convert the first image
+    let imageData: string | undefined
+    try {
+      if (feed.posts[0]?.image) {
+        const imageResponse = await fetch(feed.posts[0].image)
+        const buffer = await imageResponse.arrayBuffer()
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)))
+        imageData = `data:${imageResponse.headers.get('content-type') || 'image/png'};base64,${base64}`
+      }
+    } catch (error) {
+      console.error('Error fetching image:', error)
     }
+
+    // Use placeholder if image fetch fails
+    const imageUrl = imageData || `${baseUrl}/placeholder.jpg`
 
     return new ImageResponse(
       (
