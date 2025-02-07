@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { signIn } from "next-auth/react"
 import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 
-export default function SignIn() {
+function SignInContent() {
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl") || "/"
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-96 p-6 space-y-6">
@@ -49,5 +51,19 @@ export default function SignIn() {
         </div>
       </Card>
     </div>
+  )
+}
+
+export default function SignIn() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Card className="w-96 p-6">
+          <div className="text-center">Loading...</div>
+        </Card>
+      </div>
+    }>
+      <SignInContent />
+    </Suspense>
   )
 }
