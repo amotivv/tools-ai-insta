@@ -179,7 +179,7 @@ export function InstagramFeed() {
 
     try {
       setIsGenerating(true)
-      const newPostId = Date.now().toString()
+      const newPostId = `post_${Date.now()}`
       const promptIndex = posts.length % prompts.length
       const prompt = prompts[promptIndex]
 
@@ -188,14 +188,14 @@ export function InstagramFeed() {
         {
           id: newPostId,
           image: null,
-          likes: Math.floor(Math.random() * 1000),
+          likes: 0,
           isLiked: false,
           isBookmarked: false,
           comments: [],
         },
       ])
 
-      const result = await generateImage(prompt)
+      const result = await generateImage(prompt, newPostId)
       if (result.success) {
         setPosts((prev) =>
           prev.map((post) =>

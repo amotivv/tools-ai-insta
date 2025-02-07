@@ -159,7 +159,7 @@ export async function likeImage(imageId: string): Promise<ActionResponse<number>
   }
 }
 
-export async function generateImage(prompt: string): Promise<ActionResponse<string>> {
+export async function generateImage(prompt: string, postId?: string): Promise<ActionResponse<string>> {
   try {
     const session = await auth()
     if (!session?.user?.email) {
@@ -275,15 +275,17 @@ export async function generateImage(prompt: string): Promise<ActionResponse<stri
 
           console.log("[Generate] Found user record:", user.id)
 
-          // Store in database
+          // Store in database with provided ID
           const dbImage = await prisma.generatedImage.create({
             data: {
+              id: postId || `post_${Date.now()}`, // Use provided ID or generate one
               userId: user.id,
               prompt,
               imageUrl: url,
               blobKey,
               cacheKey,
-              isPublic: true
+              isPublic: true,
+              likes: 0 // Start with 0 likes
             }
           })
 
