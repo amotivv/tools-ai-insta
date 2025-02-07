@@ -7,19 +7,6 @@ export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-// CORS headers
-export async function OPTIONS(request: Request) {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Max-Age': '86400',
-    },
-  })
-}
-
 interface SharedFeed {
   aiProfile: {
     name: string
@@ -40,52 +27,29 @@ const ibmPlexMono = fetch(
 ).then((res) => res.arrayBuffer())
 
 export async function GET(request: Request) {
-  // Add CORS headers
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Content-Type': 'image/png',
-  }
-  const baseUrl = 'https://v0-insta-ai.vercel.app'
-  const font = await ibmPlexMono
-
   try {
+    console.log("[OG] Request URL:", request.url)
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
+    console.log("[OG] Feed ID:", id)
 
     if (!id) {
-      return new Response('Missing feed ID', { 
-        status: 400,
-        headers
-      })
+      return new Response('Missing feed ID', { status: 400 })
     }
 
     // Get the feed data from KV
+    console.log("[OG] Fetching feed from KV:", id)
     const feed = await kv.get<SharedFeed>(`feed:${id}`)
+    console.log("[OG] Feed data:", feed)
 
     if (!feed) {
-      return new Response('Feed not found', { 
-        status: 404,
-        headers
-      })
-    }
-    // Get and convert the first image
-    let imageData: string | undefined
-    try {
-      if (feed.posts[0]?.image) {
-        const imageResponse = await fetch(feed.posts[0].image)
-        const buffer = await imageResponse.arrayBuffer()
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)))
-        imageData = `data:${imageResponse.headers.get('content-type') || 'image/png'};base64,${base64}`
-      }
-    } catch (error) {
-      console.error('Error fetching image:', error)
+      return new Response('Feed not found', { status: 404 })
     }
 
-    // Use placeholder if image fetch fails
-    const imageUrl = imageData || `${baseUrl}/placeholder.jpg`
+    const font = await ibmPlexMono
 
-    return new ImageResponse(
+    console.log("[OG] Generating image response")
+    const response = new ImageResponse(
       (
         <div
           style={{
@@ -96,27 +60,17 @@ export async function GET(request: Request) {
             fontFamily: 'IBM Plex Mono'
           }}
         >
-          <div style={{ flex: '1', position: 'relative' }}>
-            <img
-              src={imageUrl}
-              alt=""
-              style={{
-                objectFit: 'cover',
-                width: '100%',
-                height: '100%'
-              }}
-            />
-            {/* Add a subtle gradient overlay */}
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: '50%',
-                background: 'linear-gradient(to bottom, transparent, rgba(0,0,0,0.7))'
-              }}
-            />
+          <div style={{ 
+            flex: '1', 
+            background: 'linear-gradient(45deg, #4f46e5, #9333ea)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '72px',
+            fontWeight: 'bold'
+          }}>
+            AI
           </div>
           <div
             style={{
@@ -155,10 +109,13 @@ export async function GET(request: Request) {
                 gap: '12px'
               }}
             >
-              <img
-                src={`${baseUrl}/placeholder-logo.svg`}
-                alt=""
-                style={{ width: '32px', height: '32px' }}
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(45deg, #4f46e5, #9333ea)'
+                }}
               />
               <span style={{ color: '#333333', fontSize: '20px' }}>
                 AI-stagram
@@ -179,10 +136,17 @@ export async function GET(request: Request) {
         ]
       }
     )
+    console.log("[OG] Image response generated successfully")
+    return response
   } catch (error) {
-    console.error('Error generating OG image:', error)
+    console.error('[OG] Error details:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      url: request.url
+    })
     
     // Return a fallback image response instead of an error
+    const font = await ibmPlexMono
     return new ImageResponse(
       (
         <div
@@ -197,10 +161,14 @@ export async function GET(request: Request) {
             fontFamily: 'IBM Plex Mono',
           }}
         >
-          <img
-            src={`${baseUrl}/placeholder-logo.svg`}
-            alt=""
-            style={{ width: '80px', height: '80px', marginBottom: '24px' }}
+          <div
+            style={{
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              background: 'linear-gradient(45deg, #4f46e5, #9333ea)',
+              marginBottom: '24px'
+            }}
           />
           <h1
             style={{
