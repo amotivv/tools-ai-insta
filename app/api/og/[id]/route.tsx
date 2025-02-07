@@ -40,6 +40,24 @@ export async function GET(request: Request) {
       return new Response('Feed not found', { status: 404 })
     }
 
+    // Try to fetch and convert the first image
+    let imageData: string | undefined
+    try {
+      if (feed.posts[0]?.image) {
+        console.log("[OG] Fetching image:", feed.posts[0].image)
+        const imageResponse = await fetch(feed.posts[0].image)
+        if (imageResponse.ok) {
+          const buffer = await imageResponse.arrayBuffer()
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)))
+          const contentType = imageResponse.headers.get('content-type') || 'image/png'
+          imageData = `data:${contentType};base64,${base64}`
+          console.log("[OG] Image converted to data URL")
+        }
+      }
+    } catch (error) {
+      console.error("[OG] Error fetching image:", error)
+    }
+
     console.log("[OG] Generating image response")
     const response = new ImageResponse(
       (
@@ -57,11 +75,33 @@ export async function GET(request: Request) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'white',
-            fontSize: '72px',
-            fontWeight: 'bold'
+            position: 'relative',
+            overflow: 'hidden'
           }}>
-            AI
+            {imageData ? (
+              <img
+                src={imageData}
+                alt=""
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover'
+                }}
+              />
+            ) : (
+              <div style={{
+                color: 'white',
+                fontSize: '72px',
+                fontWeight: 'bold'
+              }}>
+                AI
+              </div>
+            )}
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(45deg, rgba(79,70,229,0.2), rgba(147,51,234,0.2))'
+            }} />
           </div>
           <div
             style={{
