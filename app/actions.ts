@@ -123,22 +123,24 @@ import { kv } from "@vercel/kv"
 import { prisma } from "@/lib/prisma"
 
 export async function generateImage(prompt: string): Promise<ActionResponse<string>> {
-  const session = await auth()
-  if (!session?.user?.id) {
-    return {
-      success: false,
-      error: "Authentication required"
-    }
-  }
-
-  if (!REPLICATE_API_TOKEN) {
-    return {
-      success: false,
-      error: "API configuration error. Please try again later."
-    }
-  }
-
   try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      console.error("No user session found")
+      return {
+        success: false,
+        error: "Authentication required"
+      }
+    }
+
+    if (!REPLICATE_API_TOKEN) {
+      console.error("Missing Replicate API token")
+      return {
+        success: false,
+        error: "API configuration error. Please try again later."
+      }
+    }
+
     // Check KV cache first
     const cacheKey = `image:${session.user.id}:${prompt}`
     const cachedImage = await kv.get(cacheKey)
@@ -146,6 +148,8 @@ export async function generateImage(prompt: string): Promise<ActionResponse<stri
       return { success: true, data: cachedImage as string }
     }
 
+    console.log("[Generate] Starting image generation for prompt:", prompt.slice(0, 50) + "...")
+    
     const response = await fetch("https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions", {
       method: "POST",
       headers: {
@@ -174,6 +178,7 @@ export async function generateImage(prompt: string): Promise<ActionResponse<stri
     }
 
     const prediction = await response.json()
+    console.log("[Generate] Prediction started:", prediction.id)
 
     const startTime = Date.now()
     while (Date.now() - startTime < 30000) {
@@ -190,13 +195,20 @@ export async function generateImage(prompt: string): Promise<ActionResponse<stri
       }
 
       const status: PredictionResponse = await pollResponse.json()
+      console.log("[Generate] Status check:", {
+        id: prediction.id,
+        status: status.status,
+        hasOutput: !!status.output
+      })
 
       if (status.status === "succeeded" && status.output && status.output[0]) {
+        console.log("[Generate] Generation succeeded, downloading image...")
         const replicateUrl = status.output[0]
         const response = await fetch(replicateUrl)
         const imageBlob = await response.blob()
 
         const blobKey = `ai-images/${session.user.id}/${Date.now()}.png`
+        console.log("[Generate] Image downloaded, uploading to blob storage...")
         const { url } = await put(
           blobKey,
           imageBlob,
@@ -206,22 +218,36 @@ export async function generateImage(prompt: string): Promise<ActionResponse<stri
           }
         )
 
-        // Store in KV cache
-        await kv.set(cacheKey, url)
+        try {
+          console.log("[Generate] Uploaded to blob storage, storing metadata...")
+          
+          // Store in KV cache
+          await kv.set(cacheKey, url)
+          console.log("[Generate] Stored in KV cache")
 
-        // Store in database
-        await prisma.generatedImage.create({
-          data: {
-            userId: session.user.id,
-            prompt,
-            imageUrl: url,
-            blobKey,
-            cacheKey,
-            isPublic: true
-          }
-        })
+          // Store in database
+          const dbImage = await prisma.generatedImage.create({
+            data: {
+              userId: session.user.id,
+              prompt,
+              imageUrl: url,
+              blobKey,
+              cacheKey,
+              isPublic: true
+            }
+          })
 
-        return { success: true, data: url }
+          console.log("[Generate] Image stored successfully:", {
+            id: dbImage.id,
+            url: dbImage.imageUrl
+          })
+
+          return { success: true, data: url }
+        } catch (storageError) {
+          console.error("[Generate] Error storing image data:", storageError)
+          // Still return success since image was generated
+          return { success: true, data: url }
+        }
       }
 
       if (status.status === "failed") {
@@ -231,7 +257,7 @@ export async function generateImage(prompt: string): Promise<ActionResponse<stri
         }
       }
 
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise(resolve => setTimeout(resolve, 2000))
     }
 
     return {
