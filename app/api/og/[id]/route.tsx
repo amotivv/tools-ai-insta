@@ -22,44 +22,19 @@ interface SharedFeed {
 
 export async function GET(request: Request) {
   try {
-    console.log("[OG] Request URL:", request.url)
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
-    console.log("[OG] Feed ID:", id)
 
     if (!id) {
       return new Response('Missing feed ID', { status: 400 })
     }
 
-    // Get the feed data from KV
-    console.log("[OG] Fetching feed from KV:", id)
     const feed = await kv.get<SharedFeed>(`feed:${id}`)
-    console.log("[OG] Feed data:", feed)
-
     if (!feed) {
       return new Response('Feed not found', { status: 404 })
     }
 
-    // Try to fetch and convert the first image
-    let imageData: string | undefined
-    try {
-      if (feed.posts[0]?.image) {
-        console.log("[OG] Fetching image:", feed.posts[0].image)
-        const imageResponse = await fetch(feed.posts[0].image)
-        if (imageResponse.ok) {
-          const buffer = await imageResponse.arrayBuffer()
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)))
-          const contentType = imageResponse.headers.get('content-type') || 'image/png'
-          imageData = `data:${contentType};base64,${base64}`
-          console.log("[OG] Image converted to data URL")
-        }
-      }
-    } catch (error) {
-      console.error("[OG] Error fetching image:", error)
-    }
-
-    console.log("[OG] Generating image response")
-    const response = new ImageResponse(
+    return new ImageResponse(
       (
         <div
           style={{
@@ -75,33 +50,11 @@ export async function GET(request: Request) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            position: 'relative',
-            overflow: 'hidden'
+            color: 'white',
+            fontSize: '72px',
+            fontWeight: 'bold'
           }}>
-            {imageData ? (
-              <img
-                src={imageData}
-                alt=""
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover'
-                }}
-              />
-            ) : (
-              <div style={{
-                color: 'white',
-                fontSize: '72px',
-                fontWeight: 'bold'
-              }}>
-                AI
-              </div>
-            )}
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(45deg, rgba(79,70,229,0.2), rgba(147,51,234,0.2))'
-            }} />
+            {feed.aiProfile.photoSubject}
           </div>
           <div
             style={{
@@ -131,7 +84,7 @@ export async function GET(request: Request) {
                 lineHeight: 1.4
               }}
             >
-              Generated with AI-stagram
+              {feed.aiProfile.photoStyle} photos generated with AI-stagram
             </p>
             <div
               style={{
@@ -160,16 +113,9 @@ export async function GET(request: Request) {
         height: 630
       }
     )
-    console.log("[OG] Image response generated successfully")
-    return response
   } catch (error) {
-    console.error('[OG] Error details:', {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      url: request.url
-    })
+    console.error('[OG] Error:', error)
     
-    // Return a fallback image response instead of an error
     return new ImageResponse(
       (
         <div
