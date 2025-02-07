@@ -1,6 +1,6 @@
 "use client"
 
-import { Heart, Share2, Download, HelpCircle, LogOut } from "lucide-react"
+import { Share2, Download, HelpCircle, LogOut } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
@@ -14,7 +14,6 @@ interface HeaderProps {
 
 export function Header({ onDownloadAll, onShare, onShowTour }: HeaderProps) {
   const { data: session } = useSession()
-  const [isLiked, setIsLiked] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
 
   const handleShare = async () => {
@@ -37,19 +36,6 @@ export function Header({ onDownloadAll, onShare, onShowTour }: HeaderProps) {
       <div className="flex items-center space-x-4">
         {session?.user && (
           <>
-            <AnimatePresence>
-              <motion.div
-                key={`header-like-${isLiked}`}
-                initial={{ scale: 1 }}
-                animate={{ scale: isLiked ? [1, 1.2, 1] : 1 }}
-                exit={{ scale: 1 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Button variant="ghost" size="icon" onClick={() => setIsLiked(!isLiked)}>
-                  <Heart className={`w-6 h-6 ${isLiked ? "fill-primary text-primary" : "text-dark-gray"}`} />
-                </Button>
-              </motion.div>
-            </AnimatePresence>
             {onShowTour && (
               <Button variant="ghost" size="icon" onClick={onShowTour}>
                 <HelpCircle className="w-6 h-6 text-dark-gray" />

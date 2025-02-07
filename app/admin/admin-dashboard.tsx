@@ -151,7 +151,14 @@ export function AdminDashboard({ initialUsers, initialFeeds }: AdminDashboardPro
                   <TableRow key={user.id}>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{user.name}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{user.name}</span>
+                          {user.tier === "PREMIUM" && (
+                            <Badge variant="default" className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
+                              PREMIUM
+                            </Badge>
+                          )}
+                        </div>
                         <div className="text-sm text-gray-500">{user.email}</div>
                       </div>
                     </TableCell>
