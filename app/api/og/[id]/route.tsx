@@ -2,8 +2,6 @@ import { ImageResponse } from 'next/og'
 import { kv } from '@vercel/kv'
 
 export const runtime = 'edge'
-
-// Allow external access
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
@@ -21,10 +19,6 @@ interface SharedFeed {
     comments: string[]
   }[]
 }
-
-const ibmPlexMono = fetch(
-  new URL('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&display=swap')
-).then((res) => res.arrayBuffer())
 
 export async function GET(request: Request) {
   try {
@@ -46,8 +40,6 @@ export async function GET(request: Request) {
       return new Response('Feed not found', { status: 404 })
     }
 
-    const font = await ibmPlexMono
-
     console.log("[OG] Generating image response")
     const response = new ImageResponse(
       (
@@ -56,8 +48,7 @@ export async function GET(request: Request) {
             background: 'white',
             width: '1200',
             height: '630',
-            display: 'flex',
-            fontFamily: 'IBM Plex Mono'
+            display: 'flex'
           }}
         >
           <div style={{ 
@@ -126,14 +117,7 @@ export async function GET(request: Request) {
       ),
       {
         width: 1200,
-        height: 630,
-        fonts: [
-          {
-            name: 'IBM Plex Mono',
-            data: font,
-            style: 'normal'
-          }
-        ]
+        height: 630
       }
     )
     console.log("[OG] Image response generated successfully")
@@ -146,7 +130,6 @@ export async function GET(request: Request) {
     })
     
     // Return a fallback image response instead of an error
-    const font = await ibmPlexMono
     return new ImageResponse(
       (
         <div
@@ -157,8 +140,7 @@ export async function GET(request: Request) {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            fontFamily: 'IBM Plex Mono',
+            justifyContent: 'center'
           }}
         >
           <div
@@ -193,14 +175,7 @@ export async function GET(request: Request) {
       ),
       {
         width: 1200,
-        height: 630,
-        fonts: [
-          {
-            name: 'IBM Plex Mono',
-            data: font,
-            style: 'normal'
-          }
-        ]
+        height: 630
       }
     )
   }
