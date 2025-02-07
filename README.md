@@ -166,6 +166,44 @@ ai-stagram/
 └── tsconfig.json
 ```
 
+## Deployment
+
+### Deployment with GitHub Auto-Deploy
+
+1. **Connect Repository to Vercel:**
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
+   - Import your GitHub repository
+   - Configure project settings
+
+2. **Set Environment Variables:**
+   - In Vercel project settings, add all variables from `.env.local`
+   - Update for production:
+     * `DATABASE_URL`: Your production database URL
+     * `NEXTAUTH_URL`: Your production domain
+     * `NEXTAUTH_SECRET`: Generate new secret for production
+     * All API keys and tokens
+
+3. **Auto-Deploy Process:**
+   - Push changes to GitHub
+   - Vercel automatically:
+     * Detects changes
+     * Generates Prisma Client
+     * Runs database migrations
+     * Builds the application
+     * Deploys to edge network
+
+4. **Monitor Deployment:**
+   - Watch build progress in Vercel dashboard
+   - Check build logs for any issues
+   - Verify database migrations
+
+### Database Migrations
+
+Production migrations are handled automatically during deployment via:
+```bash
+prisma migrate deploy
+```
+
 ## Development Tools
 
 - **Prisma Studio:**
