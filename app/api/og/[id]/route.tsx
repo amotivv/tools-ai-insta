@@ -1,7 +1,22 @@
 import { ImageResponse } from 'next/og'
-import { prisma } from '@/lib/prisma'
+import { kv } from '@vercel/kv'
 
 export const runtime = 'edge'
+
+interface SharedFeed {
+  aiProfile: {
+    name: string
+    photoSubject: string
+    photoStyle: string
+    avatarUrl: string
+  }
+  posts: {
+    id: string
+    image: string | null
+    likes: number
+    comments: string[]
+  }[]
+}
 
 const ibmPlexMono = fetch(
   new URL('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&display=swap')
@@ -16,23 +31,15 @@ export async function GET(request: Request) {
       return new Response('Missing feed ID', { status: 400 })
     }
 
-    // Get the shared feed
-    const feed = await prisma.sharedFeed.findUnique({
-      where: { id },
-      include: {
-        user: {
-          select: {
-            name: true
-          }
-        }
-      }
-    })
+    // Get the feed data from KV
+    const feed = await kv.get<SharedFeed>(`feed:${id}`)
 
     if (!feed) {
       return new Response('Feed not found', { status: 404 })
     }
 
-    const firstImage = feed.images[0]
+    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'
+    const firstImage = feed.posts[0]?.image || `${baseUrl}/placeholder.jpg`
     const font = await ibmPlexMono
 
     return new ImageResponse(
@@ -86,7 +93,7 @@ export async function GET(request: Request) {
                 lineHeight: 1.2
               }}
             >
-              {feed.user.name}'s AI Feed
+              {feed.aiProfile.name}'s AI Feed
             </h1>
             <p
               style={{ 
@@ -106,7 +113,7 @@ export async function GET(request: Request) {
               }}
             >
               <img
-                src={new URL('/public/placeholder-logo.svg', import.meta.url).toString()}
+                src={`${baseUrl}/placeholder-logo.svg`}
                 alt=""
                 style={{ width: '32px', height: '32px' }}
               />
