@@ -101,7 +101,7 @@ export function PremiumSettings({ isPremium, initialPreferences, onUpdate }: Pre
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-4 overflow-y-auto max-h-[calc(80vh-10rem)]">
+        <div className="space-y-4 overflow-y-auto max-h-[calc(80vh-10rem)] px-4">
           {/* Model Quality */}
           <div className="space-y-2">
             <Label>Model Quality</Label>
@@ -225,7 +225,7 @@ export function PremiumSettings({ isPremium, initialPreferences, onUpdate }: Pre
           </div>
 
           <Button 
-            className="w-full mt-4 sticky bottom-0" 
+            className="w-full mt-8" 
             onClick={handleUpdate}
             disabled={isSaving}
             size="lg"
