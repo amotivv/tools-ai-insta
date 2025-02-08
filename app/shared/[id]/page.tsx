@@ -2,6 +2,7 @@ import { kv } from "@vercel/kv"
 import { notFound } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { AspectRatio } from "@/components/ui/aspect-ratio"
 import { Heart, MessageCircle, Bookmark } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { Metadata } from "next"
@@ -16,6 +17,7 @@ interface SharedFeed {
   posts: {
     id: string
     image: string | null
+    aspectRatio: string
     likes: number
     comments: string[]
   }[]
@@ -119,14 +121,21 @@ export default async function SharedFeedPage({ params }: { params: { id: string 
               </div>
 
               {/* Image */}
-              <div className="aspect-square w-full bg-gray-100 relative">
+              <AspectRatio
+                  ratio={(() => {
+                    const [width, height] = (post.aspectRatio || "1:1").split(":").map(Number)
+                    // For all ratios, use width/height to maintain proper proportions
+                    return width/height
+                  })()}
+                className="w-full bg-gray-100 relative"
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={post.image || "/placeholder.svg"}
                   alt={`AI generated ${feed.aiProfile.photoStyle} image of ${feed.aiProfile.photoSubject}`}
                   className="w-full h-full object-cover"
                 />
-              </div>
+              </AspectRatio>
 
               {/* Interaction Section */}
               <div className="p-4 space-y-4">

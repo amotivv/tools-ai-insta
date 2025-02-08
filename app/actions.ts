@@ -170,7 +170,12 @@ export async function likeImage(imageId: string): Promise<ActionResponse<number>
   }
 }
 
-export async function generateImage(prompt: string, postId?: string): Promise<ActionResponse<string>> {
+interface GeneratedImageResponse {
+  url: string
+  aspectRatio: string
+}
+
+export async function generateImage(prompt: string, postId?: string): Promise<ActionResponse<GeneratedImageResponse>> {
   try {
     const session = await auth()
     if (!session?.user?.email) {
@@ -193,12 +198,57 @@ export async function generateImage(prompt: string, postId?: string): Promise<Ac
     const cacheKey = `image:${session.user.email}:${prompt}`
     const cachedImage = await kv.get(cacheKey)
     if (cachedImage) {
-      return { success: true, data: cachedImage as string }
+      // For cached images, assume default aspect ratio
+      return { 
+        success: true, 
+        data: {
+          url: cachedImage as string,
+          aspectRatio: "1:1"
+        }
+      }
     }
 
     console.log("[Generate] Starting image generation for prompt:", prompt.slice(0, 50) + "...")
     
-    const response = await fetch("https://api.replicate.com/v1/models/black-forest-labs/flux-schnell/predictions", {
+    // Get user and their preferences
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      include: { preferences: true }
+    })
+
+    if (!user) {
+      return {
+        success: false,
+        error: "User not found"
+      }
+    }
+
+    // Use premium settings if available, otherwise use defaults
+    // Get preferences with proper type conversion
+    const preferences = user.preferences || {
+      modelType: "flux-schnell",
+      inferenceSteps: 2,
+      guidanceScale: 5.5,
+      aspectRatio: "1:1",
+      safetyCheckerEnabled: true
+    }
+
+    // Convert Decimal to number for the API
+    const modelType = preferences.modelType
+    const inferenceSteps = preferences.inferenceSteps
+    const guidanceScale = Number(preferences.guidanceScale)
+    const aspectRatio = preferences.aspectRatio
+    const safetyCheckerEnabled = preferences.safetyCheckerEnabled
+
+    // Validate inference steps based on model type
+    const modelLimits = {
+      "flux-schnell": { min: 2, max: 4 },
+      "flux-dev": { min: 18, max: 50 }
+    } as const
+    const limits = modelLimits[modelType as keyof typeof modelLimits]
+    const validatedSteps = Math.min(Math.max(inferenceSteps, limits.min), limits.max)
+
+    const response = await fetch(`https://api.replicate.com/v1/models/black-forest-labs/${modelType}/predictions`, {
       method: "POST",
       headers: {
         Authorization: `Token ${REPLICATE_API_TOKEN}`,
@@ -208,13 +258,13 @@ export async function generateImage(prompt: string, postId?: string): Promise<Ac
         input: {
           prompt,
           num_outputs: 1,
-          guidance_scale: 5.5,
-          num_inference_steps: 2,
+          guidance_scale: guidanceScale,
+          num_inference_steps: validatedSteps,
           output_format: "webp",
           output_quality: 80,
-          disable_safety_checker: false,
-          aspect_ratio: "1:1",
-          go_fast: true,
+          disable_safety_checker: !safetyCheckerEnabled,
+          aspect_ratio: aspectRatio,
+          go_fast: modelType === "flux-schnell",
         },
       }),
     })
@@ -302,14 +352,28 @@ export async function generateImage(prompt: string, postId?: string): Promise<Ac
 
           console.log("[Generate] Image stored successfully:", {
             id: dbImage.id,
-            url: dbImage.imageUrl
+            url: dbImage.imageUrl,
+            aspectRatio: aspectRatio
           })
 
-          return { success: true, data: url }
+          // Return both the URL and aspect ratio
+          return { 
+            success: true, 
+            data: {
+              url,
+              aspectRatio
+            }
+          }
         } catch (storageError) {
           console.error("[Generate] Error storing image data:", storageError)
           // Still return success since image was generated
-          return { success: true, data: url }
+          return { 
+            success: true, 
+            data: {
+              url,
+              aspectRatio: "1:1"
+            }
+          }
         }
       }
 

@@ -8,7 +8,7 @@ import { Suspense } from "react"
 
 function SignInContent() {
   const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get("callbackUrl") || "https://v0-insta-ai.vercel.app"
+  const callbackUrl = searchParams.get("callbackUrl") || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
   
   console.log("[SignIn] Params:", {
     callbackUrl,

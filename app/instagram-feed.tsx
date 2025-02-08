@@ -1,7 +1,9 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import { AspectRatio } from "@/components/ui/aspect-ratio"
 import { generateImage, generatePrompts, generatePhotoSubjects, generatePhotoStyles, likeImage } from "./actions"
+import { getUserPreferences } from "./premium-actions"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -27,6 +29,7 @@ const MAX_IMAGES = 20
 interface Post {
   id: string
   image: string | null
+  aspectRatio: string
   likes: number
   isLiked: boolean
   isBookmarked: boolean
@@ -182,12 +185,17 @@ export function InstagramFeed() {
       const newPostId = `post_${Date.now()}`
       const promptIndex = posts.length % prompts.length
       const prompt = prompts[promptIndex]
-
+      
+      // Get user preferences for aspect ratio
+      const userPrefs = await getUserPreferences()
+      const aspectRatio = userPrefs?.aspectRatio || "1:1" // Default to square if no preferences
+      
       setPosts((prev) => [
         ...prev,
         {
           id: newPostId,
           image: null,
+          aspectRatio, // Use preferred aspect ratio for placeholder
           likes: 0,
           isLiked: false,
           isBookmarked: false,
@@ -199,7 +207,11 @@ export function InstagramFeed() {
       if (result.success) {
         setPosts((prev) =>
           prev.map((post) =>
-            post.id === newPostId ? { ...post, image: result.data } : post
+            post.id === newPostId ? { 
+              ...post, 
+              image: result.data.url,
+              aspectRatio: result.data.aspectRatio 
+            } : post
           )
         )
       } else {
@@ -442,6 +454,7 @@ export function InstagramFeed() {
       posts: posts.map((post) => ({
         id: post.id,
         image: post.image,
+        aspectRatio: post.aspectRatio,
         likes: post.likes,
         comments: post.comments,
       })),
@@ -747,7 +760,14 @@ export function InstagramFeed() {
                   <div className="font-semibold">{aiProfile?.name || "AI Creator"}</div>
                 </div>
 
-                <div className="aspect-square w-full bg-gray-100 relative overflow-hidden">
+                <AspectRatio
+                  ratio={(() => {
+                    const [width, height] = post.aspectRatio.split(":").map(Number)
+                    // For all ratios, use width/height to maintain proper proportions
+                    return width/height
+                  })()}
+                  className="w-full relative overflow-hidden bg-gray-100"
+                >
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                   </div>
@@ -763,7 +783,7 @@ export function InstagramFeed() {
                       }}
                     />
                   )}
-                </div>
+                </AspectRatio>
 
                 <div className="p-4 space-y-4">
                   <div className="flex items-center justify-between">
