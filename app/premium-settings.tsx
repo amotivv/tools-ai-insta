@@ -90,8 +90,8 @@ export function PremiumSettings({ isPremium, initialPreferences, onUpdate }: Pre
           <Crown className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5 absolute -top-0.5 -right-0.5 text-primary" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="h-[90vh] sm:h-[85vh]">
-        <SheetHeader className="mb-6">
+      <SheetContent side="bottom" className="h-[80vh] sm:h-[85vh] pb-8 pt-6">
+        <SheetHeader className="mb-4">
           <SheetTitle className="flex items-center gap-2">
             <Crown className="h-5 w-5 text-primary" />
             Premium Settings
@@ -101,7 +101,7 @@ export function PremiumSettings({ isPremium, initialPreferences, onUpdate }: Pre
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4 overflow-y-auto max-h-[calc(80vh-10rem)]">
           {/* Model Quality */}
           <div className="space-y-2">
             <Label>Model Quality</Label>
@@ -225,9 +225,10 @@ export function PremiumSettings({ isPremium, initialPreferences, onUpdate }: Pre
           </div>
 
           <Button 
-            className="w-full" 
+            className="w-full mt-4 sticky bottom-0" 
             onClick={handleUpdate}
             disabled={isSaving}
+            size="lg"
           >
             {isSaving ? "Saving..." : "Save Settings"}
           </Button>
