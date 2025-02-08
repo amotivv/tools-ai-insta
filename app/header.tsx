@@ -1,9 +1,15 @@
 "use client"
 
-import { Share2, Download, HelpCircle, LogOut, Crown, Settings } from "lucide-react"
+import { Share2, Download, HelpCircle, LogOut, Crown, Settings, MoreVertical } from "lucide-react"
 import { signOut, useSession, getSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { PremiumSettings } from "./premium-settings"
@@ -65,21 +71,12 @@ export function Header({ onDownloadAll, onShare, onShowTour }: HeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md flex items-center justify-between px-8 py-4 border-b border-light-gray">
-      <div className="text-xl font-mono flex items-center">
-        <Share2 className="w-6 h-6 mr-2 text-primary" />
+    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md flex items-center justify-between px-4 sm:px-8 py-4 border-b border-light-gray">
+      <div className="text-lg sm:text-xl font-mono flex items-center">
+        <Share2 className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-primary" />
         <span className="text-primary font-semibold">AI-stagram</span>
-        {session?.user?.tier === "PREMIUM" && (
-          <Badge 
-            variant="default" 
-            className="ml-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white flex items-center gap-1"
-          >
-            <Crown className="w-3 h-3" />
-            {isPremium ? "PREMIUM" : "BASIC"}
-          </Badge>
-        )}
       </div>
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-2 sm:space-x-4">
         {session?.user && (
           <>
             {isPremium && preferences && (
@@ -91,14 +88,15 @@ export function Header({ onDownloadAll, onShare, onShowTour }: HeaderProps) {
             )}
             {onShowTour && (
               <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={async () => {
-                await updateSession()
-                onShowTour?.()
-              }}
-            >
-                <HelpCircle className="w-6 h-6 text-dark-gray" />
+                variant="ghost" 
+                size="icon" 
+                onClick={async () => {
+                  await updateSession()
+                  onShowTour?.()
+                }}
+                className="hidden sm:flex"
+              >
+                <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6 text-dark-gray" />
               </Button>
             )}
             <Button variant="ghost" size="icon" onClick={handleShare} disabled={isSharing}>
@@ -107,23 +105,39 @@ export function Header({ onDownloadAll, onShare, onShowTour }: HeaderProps) {
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
                 >
-                  <Share2 className="w-6 h-6 text-dark-gray" />
+                  <Share2 className="w-5 h-5 sm:w-6 sm:h-6 text-dark-gray" />
                 </motion.div>
               ) : (
-                <Share2 className="w-6 h-6 text-dark-gray" />
+                <Share2 className="w-5 h-5 sm:w-6 sm:h-6 text-dark-gray" />
               )}
             </Button>
             <Button variant="ghost" size="icon" onClick={onDownloadAll}>
-              <Download className="w-6 h-6 text-dark-gray" />
+              <Download className="w-5 h-5 sm:w-6 sm:h-6 text-dark-gray" />
             </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => signOut({ callbackUrl: "/" })}
-              title="Sign out"
-            >
-              <LogOut className="w-6 h-6 text-dark-gray" />
-            </Button>
+            
+            {/* Account menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="w-5 h-5 text-dark-gray" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[200px]">
+                {onShowTour && (
+                  <DropdownMenuItem onClick={async () => {
+                    await updateSession()
+                    onShowTour?.()
+                  }} className="sm:hidden">
+                    <HelpCircle className="w-4 h-4 mr-2" />
+                    Help
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })} className="text-red-600">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         )}
       </div>
