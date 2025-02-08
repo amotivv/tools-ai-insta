@@ -29,7 +29,7 @@ export function AdminOutputWindow() {
     try {
       setIsLoading(true)
       setError(null)
-      const response = await fetch('/api/admin/check/logs', {
+      const response = await fetch('/api/admin/logs', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
