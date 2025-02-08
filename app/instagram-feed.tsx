@@ -16,7 +16,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { Heart, Send, Bookmark, Loader2, ChevronRight, Crown, Sparkles } from "lucide-react"
+import { Heart, Download, Bookmark, Loader2, ChevronRight, Crown, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import { motion, AnimatePresence } from "framer-motion"
 import { Header } from "./header"
@@ -303,7 +303,7 @@ export function InstagramFeed() {
     )
   }, [])
 
-  const handleShare = useCallback(
+  const handleDownloadImage = useCallback(
     async (post: Post) => {
       if (!post.image) return
 
@@ -890,8 +890,8 @@ export function InstagramFeed() {
                           </Button>
                         </motion.div>
                       </AnimatePresence>
-                      <Button variant="ghost" size="icon" onClick={() => handleShare(post)}>
-                        <Send className="w-6 h-6" />
+                      <Button variant="ghost" size="icon" onClick={() => handleDownloadImage(post)}>
+                        <Download className="w-6 h-6" />
                       </Button>
                     </div>
                     <AnimatePresence>
