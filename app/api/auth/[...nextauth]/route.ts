@@ -14,24 +14,13 @@ declare module "next-auth" {
 }
 
 const config = {
-  debug: true,
+  debug: false,
   providers: [
     GitHub({
       clientId: process.env.GITHUB_ID!,
       clientSecret: process.env.GITHUB_SECRET!,
     }),
   ],
-  events: {
-    async signIn(message) {
-      console.log("[NextAuth] Sign in:", message)
-    },
-    async signOut(message) {
-      console.log("[NextAuth] Sign out:", message)
-    },
-    async session(message) {
-      console.log("[NextAuth] Session:", message)
-    }
-  },
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
@@ -51,12 +40,6 @@ const config = {
   },
   callbacks: {
     async signIn({ user, account, profile }) {
-      console.log("[NextAuth] Sign In Callback:", { 
-        user,
-        account,
-        profile
-      })
-
       try {
         // Ensure user exists in database
         const dbUser = await prisma.user.upsert({
@@ -107,7 +90,6 @@ const config = {
           })
         }
 
-        console.log("[NextAuth] User record:", { id: dbUser.id, email: dbUser.email })
         return true
       } catch (error) {
         console.error("[NextAuth] Error:", error)
@@ -115,12 +97,6 @@ const config = {
       }
     },
     async jwt({ token, user, account }) {
-      console.log("[NextAuth] JWT Callback:", { 
-        hasUser: !!user, 
-        hasAccount: !!account,
-        token 
-      })
-      
       if (account && user) {
         // Use the database user ID
         const dbUser = await prisma.user.findUnique({
@@ -133,11 +109,6 @@ const config = {
       return token
     },
     async session({ session, token }) {
-      console.log("[NextAuth] Session Callback:", { 
-        hasUser: !!session?.user,
-        token 
-      })
-      
       if (session.user) {
         // Get fresh user data on each session
         const dbUser = await prisma.user.findUnique({
@@ -147,7 +118,6 @@ const config = {
         session.user.id = token.id as string
         session.user.tier = dbUser?.tier || "BASIC"
         
-        console.log("[NextAuth] Updated session with tier:", dbUser?.tier)
       }
       return session
     },

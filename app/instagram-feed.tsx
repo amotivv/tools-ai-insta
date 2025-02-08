@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { AspectRatio } from "@/components/ui/aspect-ratio"
 import { generateImage, generatePrompts, generatePhotoSubjects, generatePhotoStyles, likeImage } from "./actions"
-import { getUserPreferences } from "./premium-actions"
+import { getUserPreferences, checkUserPremiumStatus } from "./premium-actions"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -14,8 +14,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog"
-import { Heart, Send, Bookmark, Loader2, ChevronRight } from "lucide-react"
+import { Heart, Send, Bookmark, Loader2, ChevronRight, Crown, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 import { motion, AnimatePresence } from "framer-motion"
 import { Header } from "./header"
@@ -61,6 +62,9 @@ export function InstagramFeed() {
   const lastPostRef = useRef<HTMLDivElement | null>(null)
   const [completedSections, setCompletedSections] = useState<Set<string>>(new Set())
   const [showHelpDialog, setShowHelpDialog] = useState(false)
+  const [isPremium, setIsPremium] = useState<boolean | null>(null)
+  const [showCustomType, setShowCustomType] = useState(false)
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
 
   const loadingMessages = [
     "Creating your AI Instagram feed...",
@@ -129,6 +133,9 @@ export function InstagramFeed() {
       const result = await generatePhotoSubjects(type)
       if (result.success) {
         setPhotoSubjects(result.data)
+        // Set completed sections and show photo subjects section
+        setCompletedSections(new Set(["aiType"]))
+        setExpandedSection("photoSubject")
       } else {
         toast.error(result.error)
       }
@@ -385,6 +392,14 @@ export function InstagramFeed() {
   }, [aiProfile.name])
 
   useEffect(() => {
+    const checkPremium = async () => {
+      const isPremiumUser = await checkUserPremiumStatus()
+      setIsPremium(isPremiumUser)
+    }
+    checkPremium()
+  }, [])
+
+  useEffect(() => {
     const tourShown = localStorage.getItem('aiStagramTourShown')
     if (!tourShown && isCreatingAI) {
       driverObj.current.drive()
@@ -596,7 +611,81 @@ export function InstagramFeed() {
                   <div className="space-y-2 pb-2">
                     <label className="block text-sm font-medium text-gray-700">AI Type</label>
                     <div className="flex flex-wrap gap-2 items-center">
-                      {visibleAITypes.map((type) => (
+                      <div className="w-full mb-2">
+                        <Button
+                          variant={showCustomType ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => {
+                            if (!isPremium) {
+                              setShowUpgradeDialog(true)
+                              return
+                            }
+                            setShowCustomType(!showCustomType)
+                          }}
+                          className="flex items-center"
+                        >
+                          {isPremium === null ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Crown className="w-4 h-4 mr-2 text-yellow-500" />
+                              Custom Type
+                              {!isPremium && <Sparkles className="w-4 h-4 ml-2 text-yellow-500" />}
+                            </>
+                          )}
+                        </Button>
+                        <AnimatePresence>
+                          {showCustomType && isPremium === true && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="mt-2"
+                            >
+                              <Input
+                                type="text"
+                                placeholder="Enter custom AI type (e.g., VintageCameraBot)"
+                                value={aiProfile.type}
+                                onChange={(e) => {
+                                  const customType = e.target.value
+                                  setAIProfile(prev => ({ ...prev, type: customType }))
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && aiProfile.type.trim()) {
+                                    handleAITypeSelect(aiProfile.type)
+                                    setCompletedSections(new Set(["aiType"]))
+                                  }
+                                }}
+                                className="w-full"
+                              />
+                              <Button
+                                className="mt-2 w-full"
+                                disabled={!aiProfile.type.trim() || isLoadingSubjects}
+                                onClick={async () => {
+                                  if (aiProfile.type.trim()) {
+                                    await handleAITypeSelect(aiProfile.type)
+                                    setShowCustomType(false) // Hide custom type input
+                                  }
+                                }}
+                              >
+                                {isLoadingSubjects ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Generating Subjects...
+                                  </>
+                                ) : (
+                                  <>
+                                    <ChevronRight className="w-4 h-4 mr-2" />
+                                    Continue with Custom Type
+                                  </>
+                                )}
+                              </Button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                      {(!showCustomType || isPremium !== true) && visibleAITypes.map((type) => (
                         <Button
                           key={type}
                           variant={aiProfile.type === type ? "default" : "outline"}
@@ -874,6 +963,46 @@ export function InstagramFeed() {
               </p>
             </DialogDescription>
           </DialogHeader>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Crown className="w-5 h-5 mr-2 text-yellow-500" />
+              Upgrade to Premium
+            </DialogTitle>
+            <DialogDescription className="space-y-4">
+              <p className="mb-4">
+                Unlock premium features to enhance your AI Instagram experience:
+              </p>
+              <ul className="list-disc pl-4 space-y-2">
+                <li className="flex items-center">
+                  <Crown className="w-4 h-4 mr-2 text-yellow-500" />
+                  Create custom AI types for unique content
+                </li>
+                <li>Advanced image generation settings</li>
+                <li>Custom aspect ratios</li>
+                <li>Priority image generation</li>
+              </ul>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowUpgradeDialog(false)}>
+              Maybe Later
+            </Button>
+            <Button 
+              className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700"
+              onClick={() => {
+                setShowUpgradeDialog(false)
+                toast.info("Upgrade feature coming soon!")
+              }}
+            >
+              <Crown className="w-4 h-4 mr-2" />
+              Upgrade Now
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

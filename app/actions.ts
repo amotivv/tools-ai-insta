@@ -65,17 +65,17 @@ type ActionResponse<T> = SuccessResponse<T> | ErrorResponse
 
 export async function generatePhotoSubjects(aiType: string): Promise<ActionResponse<string[]>> {
   const startTime = Date.now()
-  const prompt = `Generate 10 trending and engaging photo subjects for an AI that posts as a "${aiType}" content creator on Instagram.
+  const prompt = `Generate 10 engaging photo subjects related to "${aiType}".
     - Each subject should be 1-3 words
-    - Focus on subjects that would resonate with ${aiType}'s target audience
-    - Ensure variety while maintaining niche relevance
-    - Consider current social media trends
+    - Consider both common and unique aspects of the theme
+    - Focus on visually distinctive and captivating subjects
+    - Ensure variety while maintaining thematic relevance
     Return only the subjects, separated by commas.`
 
   try {
     const { text, usage } = await generateText({
       model: openai("gpt-4o-mini"),
-      system: "You are a creative AI assistant specializing in content strategy and social media trends. You understand different content creator niches and their unique visual storytelling needs.",
+      system: "You are a creative AI assistant specializing in visual arts and photography. You understand how to break down themes and concepts into compelling visual subjects.",
       prompt,
     })
 
@@ -108,17 +108,17 @@ export async function generatePhotoSubjects(aiType: string): Promise<ActionRespo
 
 export async function generatePhotoStyles(aiType: string, photoSubject: string): Promise<ActionResponse<string[]>> {
   const startTime = Date.now()
-  const prompt = `Generate 8 distinct photography styles for a "${aiType}" Instagram creator showcasing "${photoSubject}".
+  const prompt = `Generate 8 distinct photography or artistic styles that would work well for "${photoSubject}" in the context of ${aiType}.
     - Each style should be 1-3 words
-    - Mix technical terms (e.g., "macro shot") with aesthetic terms (e.g., "dark moody")
-    - Consider the subject matter and creator type
-    - Focus on visually distinctive styles
+    - Mix technical approaches (e.g., "macro shot") with visual aesthetics (e.g., "dark moody")
+    - Consider lighting, composition, and mood that enhance the subject
+    - Focus on styles that create visual impact
     Return only the styles, separated by commas.`
 
   try {
     const { text, usage } = await generateText({
       model: openai("gpt-4o-mini"),
-      system: "You are a creative AI assistant specializing in photography and visual aesthetics. You understand both technical photography terms and popular Instagram aesthetic trends.",
+      system: "You are a creative AI assistant specializing in photography and visual aesthetics. You understand both technical photography approaches and artistic visual styles.",
       prompt,
     })
 
@@ -154,20 +154,15 @@ export async function generatePrompts(
   count = 20,
 ): Promise<ActionResponse<string[]>> {
   const startTime = Date.now()
-  const prompt = `Create ${count} image generation prompts for an Instagram AI creator:
-    Profile:
-    - Type: ${aiProfile.type}
-    - Subject: ${aiProfile.photoSubject}
-    - Style: ${aiProfile.photoStyle}
-    - Name: ${aiProfile.name}
-
+  const prompt = `Create ${count} image generation prompts combining ${aiProfile.type} with ${aiProfile.photoSubject} in ${aiProfile.photoStyle} style.
+    
     Requirements:
     - Each prompt should be under 100 characters
-    - Focus on visual aesthetics and composition
-    - Maintain consistency with the creator's style
-    - Include lighting, angle, and mood cues
+    - Focus on natural and authentic compositions
+    - Include specific lighting and atmosphere details
+    - Consider perspective and framing
+    - Emphasize both subject and environment
     - Avoid text or graphics in the image
-    - Ensure Instagram-friendly composition
     
     Important:
     - Do NOT number the prompts
@@ -185,7 +180,7 @@ export async function generatePrompts(
   try {
     const { text, usage } = await generateText({
       model: openai("gpt-4o-mini"),
-      system: "You are an expert prompt engineer specializing in image generation for social media. You understand how to craft prompts that produce consistent, high-quality, Instagram-worthy images.",
+      system: "You are an expert prompt engineer specializing in image generation. You understand how to craft detailed visual descriptions that combine subjects, styles, and compositions into cohesive scenes.",
       prompt,
     })
 
