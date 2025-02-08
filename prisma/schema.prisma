@@ -40,6 +40,7 @@ model User {
   generatedImages GeneratedImage[]
   sharedFeeds   SharedFeed[]
   preferences   UserPreferences?
+  openAILogs    OpenAILog[]
 
   @@index([isActive])
 }
@@ -89,4 +90,27 @@ model SharedFeed {
 enum UserTier {
   BASIC
   PREMIUM
+}
+
+enum LogType {
+  SUBJECTS
+  STYLES
+  PROMPTS
+}
+
+model OpenAILog {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        LogType
+  input       String   @db.Text
+  output      String   @db.Text
+  duration    Int      // in milliseconds
+  promptTokens Int
+  completionTokens Int
+  totalTokens Int
+  timestamp   DateTime @default(now())
+
+  @@index([userId])
+  @@index([timestamp])
 }

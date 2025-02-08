@@ -4,7 +4,43 @@ import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { put } from '@vercel/blob'
 import './config'
+import { prisma } from "@/lib/prisma"
+import { auth } from "./api/auth/[...nextauth]/route"
+import { kv } from "@vercel/kv"
 
+async function logOpenAICall(
+  type: 'SUBJECTS' | 'STYLES' | 'PROMPTS',
+  input: string,
+  output: string,
+  startTime: number,
+  tokenUsage: { prompt: number; completion: number; total: number }
+) {
+  try {
+    const session = await auth()
+    if (!session?.user?.email) return
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    })
+    if (!user) return
+
+    // @ts-ignore - Prisma will recognize OpenAILog after regenerating client
+    await prisma.openAILog.create({
+      data: {
+        type,
+        input,
+        output,
+        userId: user.id,
+        duration: Date.now() - startTime,
+        promptTokens: tokenUsage.prompt,
+        completionTokens: tokenUsage.completion,
+        totalTokens: tokenUsage.total
+      }
+    })
+  } catch (error) {
+    console.error("Error logging OpenAI call:", error)
+  }
+}
 
 const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN
 
@@ -28,21 +64,38 @@ interface SuccessResponse<T> {
 type ActionResponse<T> = SuccessResponse<T> | ErrorResponse
 
 export async function generatePhotoSubjects(aiType: string): Promise<ActionResponse<string[]>> {
-  try {
-    const { text } = await generateText({
-      model: openai("gpt-4o-mini"),
-      system: "You are a creative AI assistant specializing in content strategy and social media trends. You understand different content creator niches and their unique visual storytelling needs.",
-      prompt: `Generate 10 trending and engaging photo subjects for an AI that posts as a "${aiType}" content creator on Instagram.
+  const startTime = Date.now()
+  const prompt = `Generate 10 trending and engaging photo subjects for an AI that posts as a "${aiType}" content creator on Instagram.
     - Each subject should be 1-3 words
     - Focus on subjects that would resonate with ${aiType}'s target audience
     - Ensure variety while maintaining niche relevance
     - Consider current social media trends
-    Return only the subjects, separated by commas.`,
+    Return only the subjects, separated by commas.`
+
+  try {
+    const { text, usage } = await generateText({
+      model: openai("gpt-4o-mini"),
+      system: "You are a creative AI assistant specializing in content strategy and social media trends. You understand different content creator niches and their unique visual storytelling needs.",
+      prompt,
     })
+
+    const subjects = text.split(",").map((subject) => subject.trim())
+    
+    await logOpenAICall(
+      'SUBJECTS',
+      prompt,
+      text,
+      startTime,
+      {
+        prompt: usage?.promptTokens || 0,
+        completion: usage?.completionTokens || 0,
+        total: usage?.totalTokens || 0
+      }
+    )
 
     return {
       success: true,
-      data: text.split(",").map((subject) => subject.trim())
+      data: subjects
     }
   } catch (error) {
     console.error("Error generating photo subjects:", error)
@@ -54,21 +107,38 @@ export async function generatePhotoSubjects(aiType: string): Promise<ActionRespo
 }
 
 export async function generatePhotoStyles(aiType: string, photoSubject: string): Promise<ActionResponse<string[]>> {
-  try {
-    const { text } = await generateText({
-      model: openai("gpt-4o-mini"),
-      system: "You are a creative AI assistant specializing in photography and visual aesthetics. You understand both technical photography terms and popular Instagram aesthetic trends.",
-      prompt: `Generate 8 distinct photography styles for a "${aiType}" Instagram creator showcasing "${photoSubject}".
+  const startTime = Date.now()
+  const prompt = `Generate 8 distinct photography styles for a "${aiType}" Instagram creator showcasing "${photoSubject}".
     - Each style should be 1-3 words
     - Mix technical terms (e.g., "macro shot") with aesthetic terms (e.g., "dark moody")
     - Consider the subject matter and creator type
     - Focus on visually distinctive styles
-    Return only the styles, separated by commas.`,
+    Return only the styles, separated by commas.`
+
+  try {
+    const { text, usage } = await generateText({
+      model: openai("gpt-4o-mini"),
+      system: "You are a creative AI assistant specializing in photography and visual aesthetics. You understand both technical photography terms and popular Instagram aesthetic trends.",
+      prompt,
     })
+
+    const styles = text.split(",").map((style) => style.trim())
+    
+    await logOpenAICall(
+      'STYLES',
+      prompt,
+      text,
+      startTime,
+      {
+        prompt: usage?.promptTokens || 0,
+        completion: usage?.completionTokens || 0,
+        total: usage?.totalTokens || 0
+      }
+    )
 
     return {
       success: true,
-      data: text.split(",").map((style) => style.trim())
+      data: styles
     }
   } catch (error) {
     console.error("Error generating photo styles:", error)
@@ -83,11 +153,8 @@ export async function generatePrompts(
   aiProfile: { type: string; photoSubject: string; photoStyle: string; name: string },
   count = 20,
 ): Promise<ActionResponse<string[]>> {
-  try {
-    const { text } = await generateText({
-      model: openai("gpt-4o-mini"),
-      system: "You are an expert prompt engineer specializing in image generation for social media. You understand how to craft prompts that produce consistent, high-quality, Instagram-worthy images.",
-      prompt: `Create ${count} image generation prompts for an Instagram AI creator:
+  const startTime = Date.now()
+  const prompt = `Create ${count} image generation prompts for an Instagram AI creator:
     Profile:
     - Type: ${aiProfile.type}
     - Subject: ${aiProfile.photoSubject}
@@ -113,12 +180,32 @@ export async function generatePrompts(
     Example:
     Vintage car on empty street, golden hour light, low angle
     
-    Return one prompt per line, following this exact format.`,
+    Return one prompt per line, following this exact format.`
+
+  try {
+    const { text, usage } = await generateText({
+      model: openai("gpt-4o-mini"),
+      system: "You are an expert prompt engineer specializing in image generation for social media. You understand how to craft prompts that produce consistent, high-quality, Instagram-worthy images.",
+      prompt,
     })
+
+    const prompts = text.split("\n").filter(Boolean)
+    
+    await logOpenAICall(
+      'PROMPTS',
+      prompt,
+      text,
+      startTime,
+      {
+        prompt: usage?.promptTokens || 0,
+        completion: usage?.completionTokens || 0,
+        total: usage?.totalTokens || 0
+      }
+    )
 
     return {
       success: true,
-      data: text.split("\n").filter(Boolean)
+      data: prompts
     }
   } catch (error) {
     console.error("Error generating prompts:", error)
@@ -128,10 +215,6 @@ export async function generatePrompts(
     }
   }
 }
-
-import { auth } from "./api/auth/[...nextauth]/route"
-import { kv } from "@vercel/kv"
-import { prisma } from "@/lib/prisma"
 
 export async function likeImage(imageId: string): Promise<ActionResponse<number>> {
   try {

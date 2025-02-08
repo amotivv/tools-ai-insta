@@ -3,6 +3,7 @@
 import { AdminUser, AdminFeed } from "./types"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { AdminOutputWindow } from "@/components/admin-output-window"
 import {
   Table,
   TableBody,
@@ -134,10 +135,11 @@ export function AdminDashboard({ initialUsers, initialFeeds }: AdminDashboardPro
       </div>
 
       <Tabs defaultValue="users">
-        <TabsList>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="feeds">Shared Feeds</TabsTrigger>
-        </TabsList>
+      <TabsList>
+        <TabsTrigger value="users">Users</TabsTrigger>
+        <TabsTrigger value="feeds">Shared Feeds</TabsTrigger>
+        <TabsTrigger value="logs">OpenAI Logs</TabsTrigger>
+      </TabsList>
 
         <TabsContent value="users">
           <Card className="p-6">
@@ -267,6 +269,10 @@ export function AdminDashboard({ initialUsers, initialFeeds }: AdminDashboardPro
               </TableBody>
             </Table>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="logs">
+          <AdminOutputWindow />
         </TabsContent>
       </Tabs>
     </main>
