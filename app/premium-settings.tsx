@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
+import { debounce } from "@/lib/utils"
 import {
   Sheet,
   SheetContent,
@@ -20,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Settings, Crown } from "lucide-react"
+import { Settings, Crown, Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import type { UserPreferences } from "./premium-actions"
 
@@ -47,36 +48,45 @@ export function PremiumSettings({ isPremium, initialPreferences, onUpdate }: Pre
     guidanceScale: Number(initialPreferences.guidanceScale)
   })
   const [isOpen, setIsOpen] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
+  const [savingStates, setSavingStates] = useState<Record<keyof UserPreferences, boolean>>({
+    modelType: false,
+    safetyCheckerEnabled: false,
+    inferenceSteps: false,
+    guidanceScale: false,
+    aspectRatio: false
+  })
   const { toast } = useToast()
 
-  const handleUpdate = async () => {
-    try {
-      setIsSaving(true)
-      const success = await onUpdate(preferences)
-      if (success) {
-        toast({
-          title: "Settings updated",
-          description: "Your premium settings have been saved.",
-        })
-        setIsOpen(false)
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to update settings. Please try again.",
-          variant: "destructive",
-        })
+  // Debounced update function
+  const debouncedUpdate = useCallback(
+    debounce(async (newPreferences: UserPreferences, key: keyof UserPreferences) => {
+      setSavingStates(prev => ({ ...prev, [key]: true }))
+      try {
+        const success = await onUpdate(newPreferences)
+        if (success) {
+          toast({
+            description: "Settings saved",
+          })
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to save changes",
+            variant: "destructive",
+          })
+        }
+      } finally {
+        setSavingStates(prev => ({ ...prev, [key]: false }))
       }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
+    }, 500),
+    [onUpdate, toast]
+  )
+
+  // Helper to update preferences and trigger save
+  const updatePreference = useCallback((key: keyof UserPreferences, value: any) => {
+    const newPreferences = { ...preferences, [key]: value }
+    setPreferences(newPreferences)
+    debouncedUpdate(newPreferences, key)
+  }, [preferences, debouncedUpdate])
 
   const modelLimits = MODEL_LIMITS[preferences.modelType as keyof typeof MODEL_LIMITS]
 
@@ -90,7 +100,7 @@ export function PremiumSettings({ isPremium, initialPreferences, onUpdate }: Pre
           <Crown className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5 absolute -top-0.5 -right-0.5 text-primary" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="h-[80vh] sm:h-[85vh] pb-8 pt-6">
+      <SheetContent side="bottom" className="h-[75vh] sm:h-[80vh] pb-6 pt-6">
         <SheetHeader className="mb-4">
           <SheetTitle className="flex items-center gap-2">
             <Crown className="h-5 w-5 text-primary" />
@@ -101,25 +111,32 @@ export function PremiumSettings({ isPremium, initialPreferences, onUpdate }: Pre
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-4 overflow-y-auto max-h-[calc(80vh-10rem)] px-4">
+        <div className="space-y-4 overflow-y-auto max-h-[calc(75vh-8rem)] sm:max-h-[calc(80vh-8rem)] px-4">
           {/* Model Quality */}
           <div className="space-y-2">
-            <Label>Model Quality</Label>
+              <div className="flex items-center gap-2">
+                <Label>Model Quality</Label>
+                {savingStates.modelType && (
+                  <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                )}
+              </div>
             <Select
               value={preferences.modelType}
               onValueChange={(value) => {
                 const newModelType = value as keyof typeof MODEL_LIMITS
                 const newLimits = MODEL_LIMITS[newModelType]
                 
-                setPreferences((prev) => ({
-                  ...prev,
+                const newPreferences = {
+                  ...preferences,
                   modelType: value,
                   // Auto-adjust inference steps when switching models
                   inferenceSteps: Math.min(
-                    Math.max(prev.inferenceSteps, newLimits.minInferenceSteps),
+                    Math.max(preferences.inferenceSteps, newLimits.minInferenceSteps),
                     newLimits.maxInferenceSteps
                   )
-                }))
+                }
+                setPreferences(newPreferences)
+                debouncedUpdate(newPreferences, 'modelType')
               }}
             >
               <SelectTrigger>
@@ -137,18 +154,20 @@ export function PremiumSettings({ isPremium, initialPreferences, onUpdate }: Pre
 
           {/* Safety Filter */}
           <div className="space-y-2">
-            <Label>Safety Filter</Label>
+            <div className="flex items-center gap-2">
+              <Label>Safety Filter</Label>
+              {savingStates.safetyCheckerEnabled && (
+                <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+              )}
+            </div>
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 Filter potentially inappropriate content
               </p>
               <Switch
                 checked={preferences.safetyCheckerEnabled}
-                onCheckedChange={(checked) =>
-                  setPreferences((prev) => ({
-                    ...prev,
-                    safetyCheckerEnabled: checked,
-                  }))
+                onCheckedChange={(checked) => 
+                  updatePreference('safetyCheckerEnabled', checked)
                 }
               />
             </div>
@@ -157,7 +176,12 @@ export function PremiumSettings({ isPremium, initialPreferences, onUpdate }: Pre
           {/* Inference Steps */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Inference Steps</Label>
+              <div className="flex items-center gap-2">
+                <Label>Inference Steps</Label>
+                {savingStates.inferenceSteps && (
+                  <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                )}
+              </div>
               <span className="text-sm text-muted-foreground">
                 {preferences.inferenceSteps}
               </span>
@@ -168,7 +192,7 @@ export function PremiumSettings({ isPremium, initialPreferences, onUpdate }: Pre
               step={1}
               value={[preferences.inferenceSteps]}
               onValueChange={([value]) =>
-                setPreferences((prev) => ({ ...prev, inferenceSteps: value }))
+                updatePreference('inferenceSteps', value)
               }
             />
             <p className="text-sm text-muted-foreground">
@@ -181,7 +205,12 @@ export function PremiumSettings({ isPremium, initialPreferences, onUpdate }: Pre
           {/* Guidance Scale */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Guidance Scale</Label>
+              <div className="flex items-center gap-2">
+                <Label>Guidance Scale</Label>
+                {savingStates.guidanceScale && (
+                  <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                )}
+              </div>
               <span className="text-sm text-muted-foreground">
                 {preferences.guidanceScale.toFixed(1)}
               </span>
@@ -192,7 +221,7 @@ export function PremiumSettings({ isPremium, initialPreferences, onUpdate }: Pre
               step={0.1}
               value={[preferences.guidanceScale]}
               onValueChange={([value]) =>
-                setPreferences((prev) => ({ ...prev, guidanceScale: value }))
+                updatePreference('guidanceScale', value)
               }
             />
             <p className="text-sm text-muted-foreground">
@@ -202,11 +231,16 @@ export function PremiumSettings({ isPremium, initialPreferences, onUpdate }: Pre
 
           {/* Aspect Ratio */}
           <div className="space-y-2">
-            <Label>Aspect Ratio</Label>
+            <div className="flex items-center gap-2">
+              <Label>Aspect Ratio</Label>
+              {savingStates.aspectRatio && (
+                <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+              )}
+            </div>
             <Select
               value={preferences.aspectRatio}
               onValueChange={(value) =>
-                setPreferences((prev) => ({ ...prev, aspectRatio: value }))
+                updatePreference('aspectRatio', value)
               }
             >
               <SelectTrigger>
@@ -224,14 +258,6 @@ export function PremiumSettings({ isPremium, initialPreferences, onUpdate }: Pre
             </p>
           </div>
 
-          <Button 
-            className="w-full mt-8" 
-            onClick={handleUpdate}
-            disabled={isSaving}
-            size="lg"
-          >
-            {isSaving ? "Saving..." : "Save Settings"}
-          </Button>
         </div>
       </SheetContent>
     </Sheet>
